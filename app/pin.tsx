@@ -1,8 +1,8 @@
-// PIN / Biometric authentication screen for Keobi
+// PIN / Biometric authentication screen for Keobi with premium animations
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
-  Dimensions, Alert,
+  Dimensions, Alert, TouchableWithoutFeedback
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -17,13 +17,75 @@ import { LinearGradient } from 'expo-linear-gradient';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PIN_LENGTH = 6;
 
+interface KeypadButtonProps {
+  value: string;
+  onPress: () => void;
+  disabled?: boolean;
+  biometricEnabled?: boolean;
+  isCreating?: boolean;
+}
+
+function KeypadButton({ value, onPress, disabled, biometricEnabled, isCreating }: KeypadButtonProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 0.86, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 0.6, duration: 100, useNativeDriver: true })
+    ]).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1, friction: 3, tension: 40, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 150, useNativeDriver: true })
+    ]).start();
+  };
+
+  const isBackspace = value === '⌫';
+  const isBiometric = value === 'biometric';
+  const showBiometricIcon = isBiometric && biometricEnabled && !isCreating;
+
+  return (
+    <TouchableWithoutFeedback
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={onPress}
+      disabled={disabled}
+    >
+      <Animated.View
+        style={[
+          styles.keyBtn,
+          isBackspace && styles.backspaceBtn,
+          showBiometricIcon && styles.fingerprintBtn,
+          isBiometric && !showBiometricIcon && styles.placeholderBtn,
+          { transform: [{ scale }], opacity }
+        ]}
+      >
+        {isBackspace ? (
+          <Ionicons name="backspace" size={24} color="rgba(255,255,255,0.9)" />
+        ) : showBiometricIcon ? (
+          <Ionicons name="finger-print" size={28} color={Colors.accent} />
+        ) : isBiometric ? (
+          <Ionicons name="lock-closed" size={20} color="rgba(255,255,255,0.15)" />
+        ) : (
+          <Text style={styles.keyText}>{value}</Text>
+        )}
+      </Animated.View>
+    </TouchableWithoutFeedback>
+  );
+}
+
 export default function PinScreen() {
   const insets = useSafeAreaInsets();
   const { pin_hash, biometric_enabled, profile_name, setSetting } = useSettingsStore();
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [attempts, setAttempts] = useState(0);
+  
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // States for creating a PIN on first run
   const isCreating = !pin_hash;
@@ -33,11 +95,13 @@ export default function PinScreen() {
   const shake = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     Animated.sequence([
-      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 12, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -12, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 6, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -6, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
     ]).start();
   }, [shakeAnim]);
 
@@ -71,6 +135,14 @@ export default function PinScreen() {
     if (biometric_enabled && !isCreating) {
       setTimeout(handleBiometric, 500);
     }
+
+    // Gentle breathing loop animation for background blobs
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.06, duration: 4000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0.94, duration: 4000, useNativeDriver: true }),
+      ])
+    ).start();
   }, []);
 
   const handleKey = useCallback(async (key: string) => {
@@ -82,7 +154,6 @@ export default function PinScreen() {
       return;
     }
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const newPin = pin + key;
     setPin(newPin);
 
@@ -112,8 +183,8 @@ export default function PinScreen() {
               setCreateStep('enter');
             }
           } else {
-            shake();
             setError('PIN tidak cocok! Silakan ulangi.');
+            shake();
             setPin('');
             setTempPin('');
             setCreateStep('enter');
@@ -126,19 +197,22 @@ export default function PinScreen() {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           onAuthenticated();
         } else {
+          setError('PIN salah!');
           shake();
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          // Wrong PIN terminates active session and redirects back to Email/Password Login
-          Alert.alert('PIN Salah', 'PIN yang Anda masukkan salah. Sesi berakhir, silakan masuk kembali dengan password.', [
-            {
-              text: 'OK',
-              onPress: async () => {
-                await setSetting('session_active', false);
-                router.replace('/login' as any);
+          // Delay Alert popup slightly to let red dots shake finish
+          setTimeout(async () => {
+            Alert.alert('PIN Salah', 'PIN yang Anda masukkan salah. Sesi berakhir, silakan masuk kembali dengan password.', [
+              {
+                text: 'OK',
+                onPress: async () => {
+                  await setSetting('session_active', false);
+                  router.replace('/login' as any);
+                }
               }
-            }
-          ]);
-          setPin('');
+            ]);
+            setPin('');
+            setError('');
+          }, 350);
         }
       }
     }
@@ -154,16 +228,33 @@ export default function PinScreen() {
 
   return (
     <LinearGradient colors={['#0F2038', '#070F1A']} style={styles.container}>
-      {/* Background decorations */}
-      <View style={styles.bgCircle1} />
-      <View style={styles.bgCircle2} />
-      <View style={styles.bgCircle3} />
+      {/* Background decorations - Animated Glowing circles */}
+      <Animated.View style={[styles.bgCircle1, { transform: [{ scale: pulseAnim }] }]}>
+        <LinearGradient
+          colors={['rgba(26, 111, 232, 0.22)', 'rgba(26, 111, 232, 0.02)']}
+          style={styles.gradientBlob}
+        />
+      </Animated.View>
+
+      <Animated.View style={[styles.bgCircle2, { transform: [{ scale: pulseAnim }] }]}>
+        <LinearGradient
+          colors={['rgba(245, 200, 66, 0.12)', 'rgba(245, 200, 66, 0.01)']}
+          style={styles.gradientBlob}
+        />
+      </Animated.View>
+
+      <Animated.View style={[styles.bgCircle3, { transform: [{ scale: pulseAnim }] }]}>
+        <LinearGradient
+          colors={['rgba(26, 111, 232, 0.1)', 'rgba(26, 111, 232, 0.01)']}
+          style={styles.gradientBlob}
+        />
+      </Animated.View>
 
       <View style={[styles.content, { paddingTop: Math.max(insets.top, 24) }]}>
         {/* Logo */}
-        <Text style={styles.appName}>keobi</Text>
+        <Text style={styles.appName}>Keobi</Text>
         <Text style={styles.greeting}>
-          {isCreating ? 'Buat PIN Pengaman Baru' : `Selamat datang, ${profile_name} 👋`}
+          {isCreating ? 'Buat PIN Pengaman Baru' : `Selamat datang, ${profile_name} `}
         </Text>
         <Text style={styles.subtitle}>
           {isCreating 
@@ -179,7 +270,7 @@ export default function PinScreen() {
               style={[
                 styles.dot,
                 i < pin.length && styles.dotFilled,
-                error && i < pin.length && styles.dotError,
+                error && styles.dotError,
               ]}
             />
           ))}
@@ -197,41 +288,26 @@ export default function PinScreen() {
           {rows.map((row, rIdx) => (
             <View key={rIdx} style={styles.keypadRow}>
               {row.map((key, kIdx) => {
-                const isBackspace = key === '⌫';
                 const isBiometric = key === 'biometric';
                 const showBiometricIcon = isBiometric && biometric_enabled && !isCreating;
                 
                 return (
-                  <TouchableOpacity
+                  <KeypadButton
                     key={kIdx}
-                    style={[
-                      styles.keyBtn,
-                      isBackspace && styles.backspaceBtn,
-                      showBiometricIcon && styles.fingerprintBtn,
-                      isBiometric && !showBiometricIcon && styles.placeholderBtn,
-                    ]}
+                    value={key}
+                    disabled={attempts >= 5 || (isBiometric && !showBiometricIcon)}
+                    biometricEnabled={biometric_enabled}
+                    isCreating={isCreating}
                     onPress={() => {
                       if (showBiometricIcon) {
                         handleBiometric();
-                      } else if (isBackspace) {
+                      } else if (key === '⌫') {
                         handleKey('⌫');
                       } else if (!isBiometric) {
                         handleKey(key);
                       }
                     }}
-                    activeOpacity={isBiometric && !showBiometricIcon ? 1.0 : 0.7}
-                    disabled={attempts >= 5 || (isBiometric && !showBiometricIcon)}
-                  >
-                    {isBackspace ? (
-                      <Ionicons name="backspace" size={24} color="rgba(255,255,255,0.9)" />
-                    ) : showBiometricIcon ? (
-                      <Ionicons name="finger-print" size={28} color={Colors.accent} />
-                    ) : isBiometric ? (
-                      <Ionicons name="lock-closed" size={20} color="rgba(255,255,255,0.15)" />
-                    ) : (
-                      <Text style={styles.keyText}>{key}</Text>
-                    )}
-                  </TouchableOpacity>
+                  />
                 );
               })}
             </View>
@@ -266,17 +342,20 @@ const styles = StyleSheet.create({
   bgCircle1: {
     position: 'absolute', top: -80, right: -80,
     width: 280, height: 280, borderRadius: 140,
-    backgroundColor: 'rgba(26, 111, 232, 0.12)',
+    overflow: 'hidden',
   },
   bgCircle2: {
     position: 'absolute', bottom: -60, left: -60,
     width: 220, height: 220, borderRadius: 110,
-    backgroundColor: 'rgba(245, 200, 66, 0.08)',
+    overflow: 'hidden',
   },
   bgCircle3: {
     position: 'absolute', top: '40%', left: -40,
     width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(26, 111, 232, 0.06)',
+    overflow: 'hidden',
+  },
+  gradientBlob: {
+    flex: 1,
   },
   content: {
     alignItems: 'center',
@@ -345,7 +424,7 @@ const styles = StyleSheet.create({
   keyBtn: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: BorderRadius.md,
     backgroundColor: 'rgba(255,255,255,0.04)',
     alignItems: 'center',
     justifyContent: 'center',

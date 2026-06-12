@@ -3,14 +3,17 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, Animated, Dimensions, FlatList, Platform,
-  TextInput, Modal, Alert, KeyboardAvoidingView,
+  TextInput, Modal, Alert, KeyboardAvoidingView, TouchableWithoutFeedback
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { useWalletStore } from '../../src/store/useWalletStore';
 import { useTransactionStore } from '../../src/store/useTransactionStore';
 import { useCategoryStore } from '../../src/store/useCategoryStore';
+import { useGoalStore } from '../../src/store/useGoalStore';
 import { useTheme } from '../../src/hooks/useTheme';
 import { Colors, BorderRadius, FontSize, FontWeight, Shadow } from '../../src/constants/Colors';
 import { formatCurrency, formatDate, formatTime, hexToRgba } from '../../src/utils/helpers';
@@ -19,22 +22,87 @@ import { router, useFocusEffect } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// ── Reusable Scale Pressable for Micro-interactions ──────────────────────────
+function ScalePressable({ children, onPress, style, disabled }: {
+  children: React.ReactNode;
+  onPress: () => void;
+  style?: any;
+  disabled?: boolean;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    if (disabled) return;
+    Animated.spring(scale, {
+      toValue: 0.96,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    if (disabled) return;
+    Animated.spring(scale, {
+      toValue: 1,
+      friction: 4,
+      tension: 45,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <TouchableWithoutFeedback
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={() => {
+        if (!disabled) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }
+      }}
+      disabled={disabled}
+    >
+      <Animated.View style={[style, { transform: [{ scale }] }]}>
+        {children}
+      </Animated.View>
+    </TouchableWithoutFeedback>
+  );
+}
+
 // ── Balance Card ────────────────────────────────────────────────────────────
 function BalanceCard({ totalBalance, income, expense }: {
   totalBalance: number; income: number; expense: number;
 }) {
   const [showBalance, setShowBalance] = useState(true);
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.05, duration: 3000, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.95, duration: 3000, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
 
   return (
-    <View style={styles.balanceCard}>
+    <LinearGradient
+      colors={['#1A6FE8', '#4F46E5', '#7C3AED']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.balanceCard}
+    >
       {/* Decorative circles */}
-      <View style={styles.balanceCircle1} />
-      <View style={styles.balanceCircle2} />
+      <Animated.View style={[styles.balanceCircle1, { transform: [{ scale: pulse }] }]}>
+        <LinearGradient colors={['rgba(255, 255, 255, 0.14)', 'rgba(255, 255, 255, 0.01)']} style={{ flex: 1 }} />
+      </Animated.View>
+      <Animated.View style={[styles.balanceCircle2, { transform: [{ scale: pulse }] }]}>
+        <LinearGradient colors={['rgba(245, 200, 66, 0.16)', 'rgba(245, 200, 66, 0.02)']} style={{ flex: 1 }} />
+      </Animated.View>
 
       <View style={styles.balanceHeader}>
         <Text style={styles.balanceLabelText}>Total Saldo</Text>
-        <TouchableOpacity onPress={() => setShowBalance(v => !v)}>
-          <Ionicons name={showBalance ? 'eye' : 'eye-off'} size={20} color="rgba(255,255,255,0.7)" />
+        <TouchableOpacity onPress={() => setShowBalance(v => !v)} activeOpacity={0.7}>
+          <Ionicons name={showBalance ? 'eye' : 'eye-off'} size={20} color="rgba(255,255,255,0.75)" />
         </TouchableOpacity>
       </View>
 
@@ -65,7 +133,7 @@ function BalanceCard({ totalBalance, income, expense }: {
           </View>
         </View>
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -73,10 +141,9 @@ function BalanceCard({ totalBalance, income, expense }: {
 function WalletItem({ wallet, onPress }: { wallet: Wallet; onPress: () => void }) {
   const { colors } = useTheme();
   return (
-    <TouchableOpacity
+    <ScalePressable
       style={[styles.walletItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
       onPress={onPress}
-      activeOpacity={0.8}
     >
       <View style={[styles.walletIcon, { backgroundColor: hexToRgba(wallet.color, 0.15) }]}>
         <Ionicons name={(wallet.icon === 'bank' ? 'business' : wallet.icon) as any} size={22} color={wallet.color} />
@@ -85,7 +152,7 @@ function WalletItem({ wallet, onPress }: { wallet: Wallet; onPress: () => void }
         <Text style={[styles.walletName, { color: colors.text }]} numberOfLines={1}>{wallet.name}</Text>
         <Text style={[styles.walletBalance, { color: wallet.color }]}>{formatCurrency(wallet.balance)}</Text>
       </View>
-    </TouchableOpacity>
+    </ScalePressable>
   );
 }
 
@@ -98,10 +165,9 @@ function TransactionItem({ transaction, onPress }: {
   const catColor = transaction.category_color || Colors.primary;
 
   return (
-    <TouchableOpacity
+    <ScalePressable
       style={[styles.txnItem, { backgroundColor: colors.surface }]}
       onPress={onPress}
-      activeOpacity={0.8}
     >
       <View style={[styles.txnIcon, { backgroundColor: hexToRgba(catColor, 0.15) }]}>
         <Ionicons name={(transaction.category_icon as any) || 'receipt'} size={20} color={catColor} />
@@ -122,7 +188,7 @@ function TransactionItem({ transaction, onPress }: {
           {formatDate(transaction.date, 'dd MMM')}
         </Text>
       </View>
-    </TouchableOpacity>
+    </ScalePressable>
   );
 }
 
@@ -387,7 +453,8 @@ function TransactionEditModal({
               value={selectedDate}
               mode="date"
               display="default"
-              onChange={(_, date) => { setShowDatePicker(false); if (date) setSelectedDate(date); }}
+              onValueChange={(_, date) => { setShowDatePicker(false); if (date) setSelectedDate(date); }}
+              onDismiss={() => setShowDatePicker(false)}
               maximumDate={new Date()}
             />
           )}
@@ -411,11 +478,25 @@ export default function Dashboard() {
     updateTransaction,
     deleteTransaction,
   } = useTransactionStore();
+  const { goals } = useGoalStore();
 
   const [refreshing, setRefreshing] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<Transaction | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+
+  // Staggered dashboard entrance animations
+  const fadeHeader = useRef(new Animated.Value(0)).current;
+  const fadeCard = useRef(new Animated.Value(0)).current;
+  const fadeWallets = useRef(new Animated.Value(0)).current;
+  const fadeActions = useRef(new Animated.Value(0)).current;
+  const fadeTxns = useRef(new Animated.Value(0)).current;
+
+  const slideHeader = useRef(new Animated.Value(25)).current;
+  const slideCard = useRef(new Animated.Value(25)).current;
+  const slideWallets = useRef(new Animated.Value(25)).current;
+  const slideActions = useRef(new Animated.Value(25)).current;
+  const slideTxns = useRef(new Animated.Value(25)).current;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -430,9 +511,37 @@ export default function Dashboard() {
 
   useFocusEffect(
     useCallback(() => {
+      // Reset animations
+      fadeHeader.setValue(0);
+      fadeCard.setValue(0);
+      fadeWallets.setValue(0);
+      fadeActions.setValue(0);
+      fadeTxns.setValue(0);
+
+      slideHeader.setValue(25);
+      slideCard.setValue(25);
+      slideWallets.setValue(25);
+      slideActions.setValue(25);
+      slideTxns.setValue(25);
+
       loadWallets();
       loadTransactions(true);
       loadMonthSummary();
+
+      const createStagger = (fade: Animated.Value, slide: Animated.Value) => {
+        return Animated.parallel([
+          Animated.timing(fade, { toValue: 1, duration: 500, useNativeDriver: true }),
+          Animated.spring(slide, { toValue: 0, friction: 8, tension: 35, useNativeDriver: true }),
+        ]);
+      };
+
+      Animated.stagger(80, [
+        createStagger(fadeHeader, slideHeader),
+        createStagger(fadeCard, slideCard),
+        createStagger(fadeWallets, slideWallets),
+        createStagger(fadeActions, slideActions),
+        createStagger(fadeTxns, slideTxns),
+      ]).start();
     }, [])
   );
 
@@ -445,38 +554,54 @@ export default function Dashboard() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
       >
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Animated.View 
+          style={[
+            styles.header, 
+            { paddingTop: insets.top + 12, opacity: fadeHeader, transform: [{ translateY: slideHeader }] }
+          ]}
+        >
           <View>
-            <Text style={[styles.appName, { color: Colors.primary }]}>keobi</Text>
+            <Text style={[styles.appName, { color: Colors.primary }]}>Keobi</Text>
             <Text style={[styles.greetingText, { color: colors.textSecondary }]}>
-              Kelola keuanganmu 💰
+              Kelola keuanganmu
             </Text>
           </View>
           <TouchableOpacity
             style={[styles.notifButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => router.push('/profile' as any)}
+            activeOpacity={0.7}
           >
             <Ionicons name="person" size={20} color={Colors.primary} />
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
         {/* Balance Card */}
-        <View style={styles.cardContainer}>
+        <Animated.View 
+          style={[
+            styles.cardContainer, 
+            { opacity: fadeCard, transform: [{ translateY: slideCard }] }
+          ]}
+        >
           <BalanceCard
             totalBalance={totalBalance}
             income={currentMonthIncome}
             expense={currentMonthExpense}
           />
-        </View>
+        </Animated.View>
 
         {/* Wallets Section */}
-        <View style={styles.section}>
+        <Animated.View 
+          style={[
+            styles.section, 
+            { opacity: fadeWallets, transform: [{ translateY: slideWallets }] }
+          ]}
+        >
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Dompet</Text>
-            <TouchableOpacity onPress={() => router.push('/profile' as any)}>
+            <TouchableOpacity onPress={() => router.push('/profile' as any)} activeOpacity={0.7}>
               <Text style={[styles.sectionAction, { color: Colors.primary }]}>Kelola</Text>
             </TouchableOpacity>
           </View>
@@ -488,48 +613,90 @@ export default function Dashboard() {
                 onPress={() => {}}
               />
             ))}
-            <TouchableOpacity
+            <ScalePressable
               style={[styles.addWalletBtn, { borderColor: Colors.primary }]}
               onPress={() => router.push('/profile' as any)}
             >
               <Ionicons name="add" size={24} color={Colors.primary} />
               <Text style={[styles.addWalletText, { color: Colors.primary }]}>Tambah</Text>
-            </TouchableOpacity>
+            </ScalePressable>
           </ScrollView>
-        </View>
+        </Animated.View>
 
         {/* Quick Actions */}
-        <View style={styles.section}>
+        <Animated.View 
+          style={[
+            styles.section, 
+            { opacity: fadeActions, transform: [{ translateY: slideActions }] }
+          ]}
+        >
           <View style={styles.quickActions}>
-            <TouchableOpacity
-              style={[styles.quickAction, { backgroundColor: Colors.primary }]}
-              onPress={() => router.push('/(tabs)/transactions' as any)}
-            >
-              <Ionicons name="add-circle" size={22} color="#fff" />
-              <Text style={styles.quickActionText}>Tambah</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.quickAction, { backgroundColor: Colors.accent }]}
+            <ScalePressable
+              style={[styles.quickAction, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
               onPress={() => router.push('/(tabs)/reports' as any)}
             >
-              <Ionicons name="bar-chart" size={22} color="#fff" />
-              <Text style={[styles.quickActionText, { color: '#fff' }]}>Laporan</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.quickAction, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
+              <View style={[styles.quickActionIconCircle, { backgroundColor: hexToRgba('#8B5CF6', 0) }]}>
+                <Ionicons name="bar-chart" size={16} color="#8B5CF6" />
+              </View>
+              <Text style={[styles.quickActionText, { color: colors.text }]}>Laporan</Text>
+            </ScalePressable>
+            <ScalePressable
+              style={[styles.quickAction, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
               onPress={() => router.push('/(tabs)/analytics' as any)}
             >
-              <Ionicons name="analytics" size={22} color={Colors.primary} />
-              <Text style={[styles.quickActionText, { color: Colors.primary }]}>Analisis</Text>
-            </TouchableOpacity>
+              <View style={[styles.quickActionIconCircle, { backgroundColor: hexToRgba(Colors.primary, 0) }]}>
+                <Ionicons name="analytics" size={16} color={Colors.primary} />
+              </View>
+              <Text style={[styles.quickActionText, { color: colors.text }]}>Analisis Usaha</Text>
+            </ScalePressable>
           </View>
-        </View>
+        </Animated.View>
+
+        {/* Goals Shortcut Banner */}
+        <Animated.View
+          style={[
+            styles.section,
+            { opacity: fadeActions, transform: [{ translateY: slideActions }] },
+          ]}
+        >
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={() => router.push('/goals' as any)}
+          >
+            <LinearGradient
+              colors={['#F59E0B', '#D97706']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={styles.goalsBanner}
+            >
+              <View style={styles.goalsBannerLeft}>
+                <View style={styles.goalsBannerIconBg}>
+                  <Ionicons name="trophy" size={22} color="#fff" />
+                </View>
+                <View>
+                  <Text style={styles.goalsBannerTitle}>Target Tabungan</Text>
+                  <Text style={styles.goalsBannerSub}>
+                    {goals.length === 0
+                      ? 'Buat target tabungan pertamamu'
+                      : `${goals.length} target aktif · ${formatCurrency(goals.reduce((s, g) => s + g.saved_amount, 0))} tersimpan`
+                    }
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
 
         {/* Recent Transactions */}
-        <View style={styles.section}>
+        <Animated.View 
+          style={[
+            styles.section, 
+            { opacity: fadeTxns, transform: [{ translateY: slideTxns }] }
+          ]}
+        >
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Transaksi Terbaru</Text>
-            <TouchableOpacity onPress={() => setShowAll(s => !s)}>
+            <TouchableOpacity onPress={() => setShowAll(s => !s)} activeOpacity={0.7}>
               <Text style={[styles.sectionAction, { color: Colors.primary }]}>
                 {showAll ? 'Sembunyikan' : 'Lihat semua'}
               </Text>
@@ -556,7 +723,7 @@ export default function Dashboard() {
               ))}
             </View>
           )}
-        </View>
+        </Animated.View>
       </ScrollView>
 
       {/* Edit Modal */}
@@ -605,7 +772,7 @@ const styles = StyleSheet.create({
   // Balance Card
   balanceCard: {
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     padding: 24,
     overflow: 'hidden',
     ...Shadow.lg,
@@ -613,13 +780,16 @@ const styles = StyleSheet.create({
   balanceCircle1: {
     position: 'absolute', top: -40, right: -40,
     width: 160, height: 160, borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
   },
   balanceCircle2: {
     position: 'absolute', bottom: -60, left: 20,
     width: 200, height: 200, borderRadius: 100,
-    backgroundColor: 'rgba(245,200,66,0.12)',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
   },
+
   balanceHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
@@ -651,7 +821,7 @@ const styles = StyleSheet.create({
   walletItem: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, paddingVertical: 12,
-    borderRadius: BorderRadius.lg, marginHorizontal: 4,
+    borderRadius: BorderRadius.md, marginHorizontal: 4,
     borderWidth: 1, minWidth: 155,
   },
   walletIcon: {
@@ -669,13 +839,17 @@ const styles = StyleSheet.create({
   },
   addWalletText: { fontSize: 12, fontWeight: '600' },
   // Quick Actions
-  quickActions: { flexDirection: 'row', gap: 10 },
+  quickActions: { flexDirection: 'row', gap: 12 },
   quickAction: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center', gap: 6, paddingVertical: 14,
-    borderRadius: BorderRadius.lg,
+    justifyContent: 'center', gap: 8, paddingVertical: 10,
+    borderRadius: BorderRadius.md, borderWidth: 1,
   },
-  quickActionText: { fontSize: FontSize.sm, fontWeight: '700', color: '#fff' },
+  quickActionText: { fontSize: FontSize.sm, fontWeight: '700' },
+  quickActionIconCircle: {
+    width: 32, height: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+  },
   // Transactions
   txnList: { borderRadius: BorderRadius.lg, overflow: 'hidden' },
   txnItem: {
@@ -812,4 +986,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Goals Banner
+  goalsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: BorderRadius.lg,
+    padding: 16,
+  },
+  goalsBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  goalsBannerIconBg: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  goalsBannerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '700', marginBottom: 2 },
+  goalsBannerSub: { color: 'rgba(255,255,255,0.85)', fontSize: FontSize.xs },
 });

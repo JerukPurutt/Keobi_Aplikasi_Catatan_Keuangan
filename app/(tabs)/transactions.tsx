@@ -19,39 +19,7 @@ import * as Haptics from 'expo-haptics';
 
 type TransactionMode = 'expense' | 'income';
 
-// ── Amount Keypad ────────────────────────────────────────────────────────────
-function Keypad({ onKey, disabled }: { onKey: (key: string) => void; disabled?: boolean }) {
-  const { colors } = useTheme();
-  const rows = [
-    ['1', '2', '3'],
-    ['4', '5', '6'],
-    ['7', '8', '9'],
-    ['.', '0', '⌫'],
-  ];
 
-  return (
-    <View style={styles.keypad}>
-      {rows.map((row, rIdx) => (
-        <View key={rIdx} style={styles.keypadRow}>
-          {row.map(key => (
-            <TouchableOpacity
-              key={key}
-              style={[styles.keyBtn, { backgroundColor: colors.surfaceSecondary }]}
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onKey(key); }}
-              activeOpacity={0.7}
-              disabled={disabled}
-            >
-              {key === '⌫'
-                ? <Ionicons name="backspace" size={22} color={colors.text} />
-                : <Text style={[styles.keyText, { color: colors.text }]}>{key}</Text>
-              }
-            </TouchableOpacity>
-          ))}
-        </View>
-      ))}
-    </View>
-  );
-}
 
 // ── Category Picker Modal ────────────────────────────────────────────────────
 function CategoryModal({
@@ -172,16 +140,10 @@ export default function TransactionScreen() {
   const categories = getCategoriesByType(mode);
   const amount = parseInt(amountStr.replace(/\D/g, ''), 10) || 0;
 
-  const handleKey = useCallback((key: string) => {
-    setAmountStr(prev => {
-      if (key === '⌫') return prev.length <= 1 ? '0' : prev.slice(0, -1);
-      if (key === '.' && prev.includes('.')) return prev;
-      if (prev === '0' && key !== '.') return key;
-      // Limit to 12 digits (hundreds of billions)
-      if (prev.replace(/\D/g, '').length >= 12 && key !== '⌫') return prev;
-      return prev + key;
-    });
-  }, []);
+  const handleAmountChange = (text: string) => {
+    const cleanNumber = text.replace(/\D/g, '');
+    setAmountStr(cleanNumber || '0');
+  };
 
   const handleSubmit = async () => {
     Keyboard.dismiss();
@@ -209,7 +171,7 @@ export default function TransactionScreen() {
       setNote('');
       setSelectedCategory(null);
       setSelectedDate(new Date());
-      Alert.alert('✅ Berhasil', `${mode === 'income' ? 'Pemasukan' : 'Pengeluaran'} berhasil dicatat!`);
+      Alert.alert('Berhasil', `${mode === 'income' ? 'Pemasukan' : 'Pengeluaran'} berhasil dicatat!`);
     } catch (e: any) {
       Alert.alert('Error', 'Gagal menyimpan transaksi: ' + (e?.message || String(e)));
     } finally {
@@ -232,46 +194,60 @@ export default function TransactionScreen() {
 
       {/* Mode Toggle */}
       <View style={[styles.modeToggleContainer, { backgroundColor: colors.surfaceSecondary }]}>
-        {(['expense', 'income'] as TransactionMode[]).map(m => (
-          <TouchableOpacity
-            key={m}
-            style={[
-              styles.modeBtn,
-              mode === m && {
-                backgroundColor: m === 'income' ? Colors.income : Colors.expense,
-                ...Shadow.sm,
-              },
-            ]}
-            onPress={() => { setMode(m); setSelectedCategory(null); }}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name={m === 'income' ? 'arrow-down-circle' : 'arrow-up-circle'}
-              size={18}
-              color={mode === m ? '#fff' : colors.textMuted}
-            />
-            <Text style={[
-              styles.modeBtnText,
-              { color: mode === m ? '#fff' : colors.textMuted },
-              mode === m && { fontWeight: '700' },
-            ]}>
-              {m === 'income' ? 'Pemasukan' : 'Pengeluaran'}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {(['expense', 'income'] as TransactionMode[]).map(m => {
+          const isActive = mode === m;
+          return (
+            <TouchableOpacity
+              key={m}
+              style={[
+                styles.modeBtn,
+                isActive && {
+                  backgroundColor: colors.surface,
+                  ...Shadow.sm,
+                },
+              ]}
+              onPress={() => { setMode(m); setSelectedCategory(null); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={m === 'income' ? 'arrow-down-circle' : 'arrow-up-circle'}
+                size={18}
+                color={isActive ? (m === 'income' ? Colors.income : Colors.expense) : colors.textMuted}
+              />
+              <Text style={[
+                styles.modeBtnText,
+                { color: isActive ? colors.text : colors.textMuted },
+                isActive && { fontWeight: '700' },
+              ]}>
+                {m === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {/* Amount Display */}
-        <View style={styles.amountContainer}>
-          <Text style={[styles.currency, { color: colors.textMuted }]}>Rp</Text>
-          <Text style={[styles.amountText, { color: modeColor }]}>
-            {parseInt(amountStr || '0', 10).toLocaleString('id-ID')}
+      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* Amount Section */}
+        <View style={styles.amountSection}>
+          <Text style={[styles.amountHeader, { color: colors.textMuted }]}>NOMINAL TRANSAKSI</Text>
+          <Text style={[styles.amountText, { color: colors.text }]}>
+            Rp {amount.toLocaleString('id-ID')}
           </Text>
+          
+          <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
+            <Text style={[styles.inputPrefix, { color: colors.text }]}>Rp </Text>
+            <TextInput
+              style={[styles.realInput, { color: colors.text }]}
+              keyboardType="number-pad"
+              value={amount > 0 ? amount.toLocaleString('id-ID') : ''}
+              onChangeText={handleAmountChange}
+              placeholder="0"
+              placeholderTextColor={colors.textMuted}
+              autoFocus={true}
+              selectionColor={modeColor}
+            />
+          </View>
         </View>
-
-        {/* Keypad */}
-        <Keypad onKey={handleKey} disabled={isSubmitting} />
 
         {/* Form Fields */}
         <View style={[styles.formCard, { backgroundColor: colors.surface }]}>
@@ -380,7 +356,8 @@ export default function TransactionScreen() {
           value={selectedDate}
           mode="date"
           display="default"
-          onChange={(_, date) => { setShowDatePicker(false); if (date) setSelectedDate(date); }}
+          onValueChange={(_, date) => { setShowDatePicker(false); if (date) setSelectedDate(date); }}
+          onDismiss={() => setShowDatePicker(false)}
           maximumDate={new Date()}
         />
       )}
@@ -393,41 +370,49 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingBottom: 12 },
   headerTitle: { fontSize: FontSize.xxl, fontWeight: '800' },
   modeToggleContainer: {
-    flexDirection: 'row', margin: 20, borderRadius: BorderRadius.lg, padding: 4,
+    flexDirection: 'row', margin: 20, borderRadius: BorderRadius.md, padding: 4,
   },
   modeBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 12, borderRadius: BorderRadius.md,
   },
   modeBtnText: { fontSize: FontSize.md },
-  amountContainer: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 20, marginBottom: 16, gap: 8,
-  },
-  currency: { fontSize: FontSize.xl, fontWeight: '600', marginTop: 8 },
-  amountText: { fontSize: 44, fontWeight: '800', letterSpacing: -1 },
-  keypad: {
-    paddingHorizontal: 24,
-    marginBottom: 20,
+  amountSection: {
     alignItems: 'center',
-    gap: 12,
+    paddingHorizontal: 20,
+    marginVertical: 20,
+    gap: 6,
   },
-  keypadRow: {
+  amountHeader: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+  },
+  amountText: {
+    fontSize: 40,
+    fontWeight: '800',
+    letterSpacing: -1,
+  },
+  inputWrapper: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    width: '100%',
-    maxWidth: 280,
-    gap: 16,
-  },
-  keyBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
     alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadow.sm,
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    width: '85%',
+    marginTop: 10,
   },
-  keyText: { fontSize: 24, fontWeight: '700' },
+  inputPrefix: {
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+  },
+  realInput: {
+    flex: 1,
+    fontSize: FontSize.lg,
+    fontWeight: '700',
+    padding: 0,
+  },
   formCard: { marginHorizontal: 20, borderRadius: BorderRadius.lg, overflow: 'hidden', marginBottom: 16 },
   formRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -440,7 +425,7 @@ const styles = StyleSheet.create({
   walletDot: { width: 8, height: 8, borderRadius: 4 },
   noteInput: { flex: 1, fontSize: FontSize.md, textAlign: 'right', minHeight: 20 },
   submitBtn: {
-    marginHorizontal: 20, paddingVertical: 18, borderRadius: BorderRadius.lg,
+    marginHorizontal: 20, paddingVertical: 18, borderRadius: BorderRadius.md,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     ...Shadow.lg,
   },

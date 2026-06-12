@@ -1,8 +1,9 @@
-// Register Screen for Keobi - Redesigned to match mockup
-import React, { useState } from 'react';
+// Register Screen for Keobi - Redesigned to match mockup with premium animations
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  Alert, Dimensions, KeyboardAvoidingView, Platform, ScrollView
+  Alert, Dimensions, KeyboardAvoidingView, Platform, ScrollView,
+  Animated, TouchableWithoutFeedback
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -34,6 +35,88 @@ export default function RegisterScreen() {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmFocused, setConfirmFocused] = useState(false);
+
+  // Background blobs animations
+  const blob1Anim = useRef(new Animated.Value(0)).current;
+  const blob2Anim = useRef(new Animated.Value(0)).current;
+
+  // Staggered entrance animations
+  const fadeHeader = useRef(new Animated.Value(0)).current;
+  const fadeEmail = useRef(new Animated.Value(0)).current;
+  const fadePassword = useRef(new Animated.Value(0)).current;
+  const fadeConfirm = useRef(new Animated.Value(0)).current;
+  const fadeRow = useRef(new Animated.Value(0)).current;
+  const fadeSubmit = useRef(new Animated.Value(0)).current;
+  const fadeDivider = useRef(new Animated.Value(0)).current;
+  const fadeSocial = useRef(new Animated.Value(0)).current;
+  const fadeFooter = useRef(new Animated.Value(0)).current;
+
+  const slideHeader = useRef(new Animated.Value(35)).current;
+  const slideEmail = useRef(new Animated.Value(35)).current;
+  const slidePassword = useRef(new Animated.Value(35)).current;
+  const slideConfirm = useRef(new Animated.Value(35)).current;
+  const slideRow = useRef(new Animated.Value(35)).current;
+  const slideSubmit = useRef(new Animated.Value(35)).current;
+  const slideDivider = useRef(new Animated.Value(35)).current;
+  const slideSocial = useRef(new Animated.Value(35)).current;
+  const slideFooter = useRef(new Animated.Value(35)).current;
+
+  // Button scales
+  const submitScale = useRef(new Animated.Value(1)).current;
+  const googleScale = useRef(new Animated.Value(1)).current;
+  const facebookScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Start background ambient floating animations
+    Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(blob1Anim, { toValue: 1, duration: 10000, useNativeDriver: true }),
+          Animated.timing(blob1Anim, { toValue: 0, duration: 10000, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(blob2Anim, { toValue: 1, duration: 12000, useNativeDriver: true }),
+          Animated.timing(blob2Anim, { toValue: 0, duration: 12000, useNativeDriver: true }),
+        ]),
+      ])
+    ).start();
+
+    // Start staggered entrance animations
+    const createStagger = (fade: Animated.Value, slide: Animated.Value) => {
+      return Animated.parallel([
+        Animated.timing(fade, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slide, { toValue: 0, friction: 8, tension: 35, useNativeDriver: true }),
+      ]);
+    };
+
+    Animated.stagger(75, [
+      createStagger(fadeHeader, slideHeader),
+      createStagger(fadeEmail, slideEmail),
+      createStagger(fadePassword, slidePassword),
+      createStagger(fadeConfirm, slideConfirm),
+      createStagger(fadeRow, slideRow),
+      createStagger(fadeSubmit, slideSubmit),
+      createStagger(fadeDivider, slideDivider),
+      createStagger(fadeSocial, slideSocial),
+      createStagger(fadeFooter, slideFooter),
+    ]).start();
+  }, []);
+
+  const handlePressIn = (scaleVar: Animated.Value) => {
+    Animated.spring(scaleVar, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = (scaleVar: Animated.Value) => {
+    Animated.spring(scaleVar, {
+      toValue: 1,
+      friction: 4,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
 
   const handleSubmit = async () => {
     const trimmedEmail = email.trim();
@@ -77,26 +160,17 @@ export default function RegisterScreen() {
       // 3. Seed default categories & wallet for this specific user
       await seedDefaultDataForUser(db, trimmedEmail);
 
-      // 4. Set global session active settings
+      // 4. Set global settings (save email for login auto-population, but keep session inactive)
       await setSetting('login_email', trimmedEmail);
-      await setSetting('session_active', true);
-
-      // 5. Reload all Zustand stores in memory to reflect the new user's empty data
-      await Promise.all([
-        useSettingsStore.getState().loadSettings(),
-        useWalletStore.getState().loadWallets(),
-        useCategoryStore.getState().loadCategories(),
-        useTransactionStore.getState().loadTransactions(true),
-        useTransactionStore.getState().loadMonthSummary(),
-      ]);
+      await setSetting('session_active', false);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
-      Alert.alert('Registrasi Berhasil', 'Akun Anda telah terdaftar secara offline.', [
+      Alert.alert('Registrasi Berhasil', 'Akun Anda telah terdaftar. Silakan masuk menggunakan akun baru Anda.', [
         {
-          text: 'Masuk ke Aplikasi',
+          text: 'Masuk Sekarang',
           onPress: () => {
-            router.replace('/(tabs)' as any);
+            router.replace('/login' as any);
           }
         }
       ]);
@@ -105,6 +179,33 @@ export default function RegisterScreen() {
       Alert.alert('Error', 'Terjadi kesalahan sistem saat mencoba mendaftar');
     }
   };
+
+  // Interpolations for background circles
+  const blob1TranslateX = blob1Anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 40],
+  });
+  const blob1TranslateY = blob1Anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -30],
+  });
+  const blob1Scale = blob1Anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.2],
+  });
+
+  const blob2TranslateX = blob2Anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -50],
+  });
+  const blob2TranslateY = blob2Anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 40],
+  });
+  const blob2Scale = blob2Anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.25],
+  });
 
   return (
     <KeyboardAvoidingView
@@ -118,21 +219,64 @@ export default function RegisterScreen() {
         ]} 
         keyboardShouldPersistTaps="handled"
       >
-        {/* Background decorations */}
-        <View style={styles.bgCircle1} />
-        <View style={styles.bgCircle2} />
+        {/* Background decorations - Glowing Animated Gradients */}
+        <Animated.View 
+          style={[
+            styles.bgCircle1,
+            { 
+              transform: [
+                { translateX: blob1TranslateX }, 
+                { translateY: blob1TranslateY },
+                { scale: blob1Scale }
+              ] 
+            }
+          ]}
+        >
+          <LinearGradient
+            colors={['rgba(26, 111, 232, 0.22)', 'rgba(26, 111, 232, 0.02)']}
+            style={styles.gradientBlob}
+          />
+        </Animated.View>
+
+        <Animated.View 
+          style={[
+            styles.bgCircle2,
+            { 
+              transform: [
+                { translateX: blob2TranslateX }, 
+                { translateY: blob2TranslateY },
+                { scale: blob2Scale }
+              ] 
+            }
+          ]}
+        >
+          <LinearGradient
+            colors={['rgba(245, 200, 66, 0.12)', 'rgba(245, 200, 66, 0.01)']}
+            style={styles.gradientBlob}
+          />
+        </Animated.View>
 
         <View style={styles.content}>
-          {/* Header left-aligned matching the mockup */}
-          <View style={styles.headerContainer}>
+          {/* Header left-aligned */}
+          <Animated.View 
+            style={[
+              styles.headerContainer,
+              { opacity: fadeHeader, transform: [{ translateY: slideHeader }] }
+            ]}
+          >
             <Text style={styles.appName}>keobi</Text>
             <Text style={styles.title}>Create your{'\n'}account</Text>
-          </View>
+          </Animated.View>
 
           {/* Form Card */}
           <View style={styles.card}>
             {/* Email/Username field */}
-            <View style={styles.inputGroup}>
+            <Animated.View 
+              style={[
+                styles.inputGroup,
+                { opacity: fadeEmail, transform: [{ translateY: slideEmail }] }
+              ]}
+            >
               <Text style={styles.label}>Your number & email address</Text>
               <View 
                 style={[
@@ -143,7 +287,7 @@ export default function RegisterScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="uiuxshamim68@gmail.com"
-                  placeholderTextColor="rgba(255,255,255,0.2)"
+                  placeholderTextColor="rgba(255,255,255,0.25)"
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
@@ -152,10 +296,15 @@ export default function RegisterScreen() {
                   onBlur={() => setEmailFocused(false)}
                 />
               </View>
-            </View>
+            </Animated.View>
 
             {/* Password field */}
-            <View style={styles.inputGroup}>
+            <Animated.View 
+              style={[
+                styles.inputGroup,
+                { opacity: fadePassword, transform: [{ translateY: slidePassword }] }
+              ]}
+            >
               <Text style={styles.label}>Enter your password</Text>
               <View 
                 style={[
@@ -166,7 +315,7 @@ export default function RegisterScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••••••••••"
-                  placeholderTextColor="rgba(255,255,255,0.2)"
+                  placeholderTextColor="rgba(255,255,255,0.25)"
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={setPassword}
@@ -177,6 +326,7 @@ export default function RegisterScreen() {
                 <TouchableOpacity 
                   onPress={() => setShowPassword(!showPassword)}
                   style={styles.eyeBtn}
+                  activeOpacity={0.7}
                 >
                   <Ionicons 
                     name={showPassword ? "eye-off-outline" : "eye-outline"} 
@@ -185,10 +335,15 @@ export default function RegisterScreen() {
                   />
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
 
             {/* Confirm Password field */}
-            <View style={styles.inputGroup}>
+            <Animated.View 
+              style={[
+                styles.inputGroup,
+                { opacity: fadeConfirm, transform: [{ translateY: slideConfirm }] }
+              ]}
+            >
               <Text style={styles.label}>Confirm your password</Text>
               <View 
                 style={[
@@ -199,7 +354,7 @@ export default function RegisterScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••••••••••"
-                  placeholderTextColor="rgba(255,255,255,0.2)"
+                  placeholderTextColor="rgba(255,255,255,0.25)"
                   secureTextEntry={!showConfirmPassword}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -210,6 +365,7 @@ export default function RegisterScreen() {
                 <TouchableOpacity 
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   style={styles.eyeBtn}
+                  activeOpacity={0.7}
                 >
                   <Ionicons 
                     name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
@@ -218,10 +374,15 @@ export default function RegisterScreen() {
                   />
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
 
             {/* Checkbox Row */}
-            <View style={styles.row}>
+            <Animated.View 
+              style={[
+                styles.row,
+                { opacity: fadeRow, transform: [{ translateY: slideRow }] }
+              ]}
+            >
               <TouchableOpacity 
                 style={styles.checkboxRow} 
                 onPress={() => setRememberMe(!rememberMe)}
@@ -232,58 +393,93 @@ export default function RegisterScreen() {
                 </View>
                 <Text style={styles.checkboxLabel}>Remember me</Text>
               </TouchableOpacity>
-            </View>
+            </Animated.View>
 
-            {/* Register Button with Linear Gradient matching premium mockup */}
-            <TouchableOpacity 
-              onPress={handleSubmit}
-              activeOpacity={0.85}
-              style={styles.submitBtnContainer}
+            {/* Register Button with Spring scale interaction */}
+            <Animated.View 
+              style={[
+                { opacity: fadeSubmit, transform: [{ translateY: slideSubmit }, { scale: submitScale }] }
+              ]}
             >
-              <LinearGradient
-                colors={['#1A6FE8', '#0D4FA8']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.submitBtnGradient}
+              <TouchableWithoutFeedback
+                onPressIn={() => handlePressIn(submitScale)}
+                onPressOut={() => handlePressOut(submitScale)}
+                onPress={handleSubmit}
               >
-                <Text style={styles.submitBtnText}>Create Account</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                <View style={styles.submitBtnContainer}>
+                  <LinearGradient
+                    colors={['#1A6FE8', '#0D4FA8']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.submitBtnGradient}
+                  >
+                    <Text style={styles.submitBtnText}>Create Account</Text>
+                  </LinearGradient>
+                </View>
+              </TouchableWithoutFeedback>
+            </Animated.View>
 
             {/* Divider "Or" */}
-            <View style={styles.dividerContainer}>
+            <Animated.View 
+              style={[
+                styles.dividerContainer,
+                { opacity: fadeDivider, transform: [{ translateY: slideDivider }] }
+              ]}
+            >
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>Or</Text>
               <View style={styles.dividerLine} />
-            </View>
+            </Animated.View>
 
-            {/* Social Buttons */}
-            <TouchableOpacity 
-              style={styles.socialBtn}
-              onPress={() => Alert.alert('Info', 'Opsi Google Sign In sedang disimulasikan.')}
-              activeOpacity={0.8}
+            {/* Social Buttons with Spring scale interactions */}
+            <Animated.View 
+              style={{ opacity: fadeSocial, transform: [{ translateY: slideSocial }] }}
             >
-              <Ionicons name="logo-google" size={18} color="#EA4335" style={styles.socialIcon} />
-              <Text style={styles.socialBtnText}>Sign up with google</Text>
-            </TouchableOpacity>
+              <TouchableWithoutFeedback
+                onPressIn={() => handlePressIn(googleScale)}
+                onPressOut={() => handlePressOut(googleScale)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  Alert.alert('Info', 'Opsi Google Sign In sedang disimulasikan.');
+                }}
+              >
+                <Animated.View style={[styles.socialBtn, { transform: [{ scale: googleScale }] }]}>
+                  <Ionicons name="logo-google" size={18} color="#EA4335" style={styles.socialIcon} />
+                  <Text style={styles.socialBtnText}>Sign up with google</Text>
+                </Animated.View>
+              </TouchableWithoutFeedback>
 
-            <TouchableOpacity 
-              style={styles.socialBtn}
-              onPress={() => Alert.alert('Info', 'Opsi Facebook Sign In sedang disimulasikan.')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="logo-facebook" size={20} color="#1877F2" style={styles.socialIcon} />
-              <Text style={styles.socialBtnText}>Sign up with facebook</Text>
-            </TouchableOpacity>
+              <TouchableWithoutFeedback
+                onPressIn={() => handlePressIn(facebookScale)}
+                onPressOut={() => handlePressOut(facebookScale)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  Alert.alert('Info', 'Opsi Facebook Sign In sedang disimulasikan.');
+                }}
+              >
+                <Animated.View style={[styles.socialBtn, { transform: [{ scale: facebookScale }] }]}>
+                  <Ionicons name="logo-facebook" size={20} color="#1877F2" style={styles.socialIcon} />
+                  <Text style={styles.socialBtnText}>Sign up with facebook</Text>
+                </Animated.View>
+              </TouchableWithoutFeedback>
+            </Animated.View>
           </View>
 
           {/* Switch to Login link at bottom */}
-          <View style={styles.footer}>
+          <Animated.View 
+            style={[
+              styles.footer,
+              { opacity: fadeFooter, transform: [{ translateY: slideFooter }] }
+            ]}
+          >
             <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.replace('/login' as any)}>
+            <TouchableOpacity 
+              onPress={() => router.replace('/login' as any)}
+              activeOpacity={0.7}
+            >
               <Text style={styles.footerLink}>Login</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -302,13 +498,16 @@ const styles = StyleSheet.create({
   },
   bgCircle1: {
     position: 'absolute', top: -100, right: -100,
-    width: 300, height: 300, borderRadius: 150,
-    backgroundColor: 'rgba(26, 111, 232, 0.08)',
+    width: 320, height: 320, borderRadius: 160,
+    overflow: 'hidden',
   },
   bgCircle2: {
     position: 'absolute', bottom: -80, left: -80,
-    width: 250, height: 250, borderRadius: 125,
-    backgroundColor: 'rgba(245, 200, 66, 0.04)',
+    width: 280, height: 280, borderRadius: 140,
+    overflow: 'hidden',
+  },
+  gradientBlob: {
+    flex: 1,
   },
   content: {
     width: '100%',
@@ -320,7 +519,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   appName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
     color: Colors.primary,
     letterSpacing: -1,
@@ -355,10 +554,19 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 16,
     height: 54,
+    // Glassmorphic shadow style
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
   },
   inputWrapperFocused: {
     borderColor: Colors.primary,
-    backgroundColor: 'rgba(26, 111, 232, 0.03)',
+    backgroundColor: 'rgba(26, 111, 232, 0.04)',
+    // Inner glowing shadow simulation
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 2,
   },
   input: {
     flex: 1,
@@ -444,6 +652,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     marginBottom: 14,
+    // Glassmorphic shadow style
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   socialIcon: {
     marginRight: 12,

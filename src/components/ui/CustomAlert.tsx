@@ -82,11 +82,6 @@ export default function CustomAlert() {
     >
       <View style={styles.overlay}>
         <View style={[styles.alertCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {/* Icon Header */}
-          <View style={[styles.iconContainer, { backgroundColor: hexToRgba(iconColor, 0.12) }]}>
-            <Ionicons name={iconName} size={36} color={iconColor} />
-          </View>
-
           {/* Title & Description */}
           {title ? (
             <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
@@ -165,15 +160,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 24,
     alignItems: 'center',
-    ...Shadow.lg,
-  },
-  iconContainer: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
   },
   title: {
     fontSize: FontSize.lg,

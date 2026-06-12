@@ -217,7 +217,7 @@ export default function AnalyticsScreen() {
           <ActivityIndicator color={Colors.primary} size="large" />
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
           {/* Pie Chart */}
           {pieData.length > 0 && (
             <View style={[styles.pieCard, { backgroundColor: colors.surface }]}>
@@ -277,7 +277,7 @@ export default function AnalyticsScreen() {
           {/* Insights */}
           <View style={styles.insightsSection}>
             <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 12 }]}>
-              💡 Insight Personal
+              Insight Personal
             </Text>
             {insights.map((insight, i) => (
               <InsightCard key={i} insight={insight} />

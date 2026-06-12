@@ -78,3 +78,16 @@ export interface AnalyticsInsight {
   description: string;
   icon: string;
 }
+
+export interface SavingGoal {
+  id: string;
+  user_email: string;
+  title: string;
+  icon: string;
+  color: string;
+  target_amount: number;
+  saved_amount: number;
+  deadline: number | null; // timestamp ms, null = no deadline
+  created_at: number;
+  updated_at: number;
+}

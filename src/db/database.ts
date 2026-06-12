@@ -31,6 +31,28 @@ const initDatabase = async (database: SQLite.SQLiteDatabase) => {
     console.error('Error checking schema migration:', err);
   }
 
+  // Migration: add goals table if missing
+  try {
+    await database.execAsync(`
+      CREATE TABLE IF NOT EXISTS goals (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_email TEXT NOT NULL,
+        title TEXT NOT NULL,
+        icon TEXT NOT NULL DEFAULT 'trophy',
+        color TEXT NOT NULL DEFAULT '#1A6FE8',
+        target_amount REAL NOT NULL DEFAULT 0,
+        saved_amount REAL NOT NULL DEFAULT 0,
+        deadline INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_goals_user ON goals(user_email);
+    `);
+  } catch (err) {
+    console.error('Error creating goals table:', err);
+  }
+
   await database.execAsync(`
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;

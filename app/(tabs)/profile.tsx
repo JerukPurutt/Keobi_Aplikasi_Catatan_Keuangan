@@ -2,24 +2,23 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Modal, Alert, Switch, Dimensions,
+  TextInput, Modal, Alert, Switch, Dimensions, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSettingsStore } from '../../src/store/useSettingsStore';
 import { useWalletStore } from '../../src/store/useWalletStore';
 import { useCategoryStore } from '../../src/store/useCategoryStore';
 import { useTransactionStore } from '../../src/store/useTransactionStore';
 import { useTheme } from '../../src/hooks/useTheme';
-import { Colors, BorderRadius, FontSize, Shadow } from '../../src/constants/Colors';
-import { formatCurrency, generateId, hashPin, verifyPin, hexToRgba } from '../../src/utils/helpers';
-import { Wallet, Category } from '../../src/types';
+import { Colors, BorderRadius, FontSize } from '../../src/constants/Colors';
+import { hashPin, verifyPin, hexToRgba } from '../../src/utils/helpers';
+import * as Haptics from 'expo-haptics';
 import { exportToCSV, exportToHTML, backupDatabase, restoreDatabase } from '../../src/utils/export';
 import { resetDatabaseForNewUser, deleteUserAccount } from '../../src/db/database';
 import { router } from 'expo-router';
 
-const WALLET_ICONS = ['wallet', 'card', 'cash', 'business', 'briefcase', 'storefront', 'phone-portrait', 'logo-bitcoin'];
-const WALLET_COLORS = ['#1A6FE8', '#22C55E', '#EF4444', '#F5C842', '#8B5CF6', '#EC4899', '#F97316', '#14B8A6'];
 const CAT_ICONS = ['briefcase', 'restaurant', 'car', 'bag', 'receipt', 'medical', 'game-controller', 'sparkles', 'fast-food', 'school', 'laptop', 'gift', 'home', 'fitness', 'pricetag'];
 
 // ── Section Header ────────────────────────────────────────────────────────────
@@ -30,23 +29,30 @@ function SectionHeader({ title }: { title: string }) {
 
 // ── Settings Row ─────────────────────────────────────────────────────────────
 function SettingsRow({
-  icon, iconColor = Colors.primary, label, value, onPress, rightEl, subtitle,
+  icon, iconColor, label, labelColor, value, onPress, rightEl, subtitle, hideDivider,
 }: {
-  icon: string; iconColor?: string; label: string; value?: string;
-  onPress?: () => void; rightEl?: React.ReactNode; subtitle?: string;
+  icon: string; iconColor?: string; label: string; labelColor?: string; value?: string;
+  onPress?: () => void; rightEl?: React.ReactNode; subtitle?: string; hideDivider?: boolean;
 }) {
   const { colors } = useTheme();
+  const finalIconColor = iconColor || colors.textSecondary;
+  const finalLabelColor = labelColor || colors.text;
+
   return (
     <TouchableOpacity
-      style={[styles.settingsRow, { borderBottomColor: colors.border }]}
+      style={[
+        styles.settingsRow,
+        { borderBottomColor: colors.border },
+        hideDivider && { borderBottomWidth: 0 }
+      ]}
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
     >
-      <View style={[styles.settingsIcon, { backgroundColor: hexToRgba(iconColor, 0.12) }]}>
-        <Ionicons name={icon as any} size={18} color={iconColor} />
+      <View style={styles.settingsIcon}>
+        <Ionicons name={icon as any} size={22} color={finalIconColor} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[styles.settingsLabel, { color: colors.text }]}>{label}</Text>
+        <Text style={[styles.settingsLabel, { color: finalLabelColor }]}>{label}</Text>
         {subtitle && <Text style={[styles.settingsSubtitle, { color: colors.textMuted }]}>{subtitle}</Text>}
       </View>
       {rightEl || (
@@ -57,265 +63,178 @@ function SettingsRow({
   );
 }
 
-// ── Wallet Form Modal ─────────────────────────────────────────────────────────
-function WalletModal({
-  visible, onClose, onSave, initial,
-}: {
-  visible: boolean; onClose: () => void;
-  onSave: (data: Omit<Wallet, 'id' | 'created_at' | 'updated_at'>) => void;
-  initial?: Wallet;
-}) {
-  const { colors } = useTheme();
-  const [name, setName] = useState(initial?.name || '');
-  const [balance, setBalance] = useState(String(initial?.balance || ''));
-  const [icon, setIcon] = useState(initial?.icon || 'wallet');
-  const [color, setColor] = useState(initial?.color || Colors.primary);
 
-  React.useEffect(() => {
-    if (visible) {
-      setName(initial?.name || '');
-      setBalance(String(initial?.balance || ''));
-      setIcon(initial?.icon === 'bank' ? 'business' : (initial?.icon || 'wallet'));
-      setColor(initial?.color || Colors.primary);
-    }
-  }, [visible, initial]);
-
-  const handleSave = () => {
-    if (!name.trim()) { Alert.alert('Error', 'Nama dompet wajib diisi'); return; }
-    onSave({ name: name.trim(), icon, color, balance: parseFloat(balance) || 0 });
-    onClose();
-  };
-
-  return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
-          <View style={styles.modalHandle} />
-          <Text style={[styles.modalTitle, { color: colors.text }]}>
-            {initial ? 'Edit Dompet' : 'Tambah Dompet'}
-          </Text>
-
-          <TextInput
-            style={[styles.input, { color: colors.text, backgroundColor: colors.input, borderColor: colors.inputBorder }]}
-            placeholder="Nama dompet"
-            placeholderTextColor={colors.textMuted}
-            value={name}
-            onChangeText={setName}
-          />
-          <TextInput
-            style={[styles.input, { color: colors.text, backgroundColor: colors.input, borderColor: colors.inputBorder }]}
-            placeholder="Saldo awal (Rp)"
-            placeholderTextColor={colors.textMuted}
-            value={balance}
-            onChangeText={setBalance}
-            keyboardType="numeric"
-          />
-
-          <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Ikon</Text>
-          <View style={styles.iconGrid}>
-            {WALLET_ICONS.map(ic => (
-              <TouchableOpacity
-                key={ic}
-                style={[styles.iconOption, { borderColor: icon === ic ? color : colors.border },
-                  icon === ic && { backgroundColor: hexToRgba(color, 0.15) }]}
-                onPress={() => setIcon(ic)}
-              >
-                <Ionicons name={ic as any} size={22} color={icon === ic ? color : colors.textMuted} />
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Warna</Text>
-          <View style={styles.colorRow}>
-            {WALLET_COLORS.map(c => (
-              <TouchableOpacity
-                key={c}
-                style={[styles.colorDot, { backgroundColor: c }, color === c && styles.colorDotSelected]}
-                onPress={() => setColor(c)}
-              />
-            ))}
-          </View>
-
-          <View style={styles.modalButtons}>
-            <TouchableOpacity style={[styles.cancelBtn, { borderColor: colors.border }]} onPress={onClose}>
-              <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Batal</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: Colors.primary }]} onPress={handleSave}>
-              <Text style={styles.saveText}>Simpan</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-// ── Category Form Modal ───────────────────────────────────────────────────────
-function CategoryModal({
-  visible, onClose, onSave, initial,
-}: {
-  visible: boolean; onClose: () => void;
-  onSave: (data: Omit<Category, 'id' | 'created_at' | 'is_default'>) => void;
-  initial?: Category;
-}) {
-  const { colors } = useTheme();
-  const [name, setName] = useState(initial?.name || '');
-  const [icon, setIcon] = useState(initial?.icon || 'pricetag');
-  const [color, setColor] = useState(initial?.color || Colors.primary);
-  const [type, setType] = useState<'income' | 'expense' | 'both'>(initial?.type || 'expense');
-
-  React.useEffect(() => {
-    if (visible) {
-      setName(initial?.name || '');
-      setIcon(initial?.icon || 'pricetag');
-      setColor(initial?.color || Colors.primary);
-      setType(initial?.type || 'expense');
-    }
-  }, [visible, initial]);
-
-  const handleSave = () => {
-    if (!name.trim()) { Alert.alert('Error', 'Nama kategori wajib diisi'); return; }
-    onSave({ name: name.trim(), icon, color, type });
-    onClose();
-  };
-
-  return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
-          <View style={styles.modalHandle} />
-          <Text style={[styles.modalTitle, { color: colors.text }]}>
-            {initial ? 'Edit Kategori' : 'Tambah Kategori'}
-          </Text>
-
-          <TextInput
-            style={[styles.input, { color: colors.text, backgroundColor: colors.input, borderColor: colors.inputBorder }]}
-            placeholder="Nama kategori"
-            placeholderTextColor={colors.textMuted}
-            value={name}
-            onChangeText={setName}
-          />
-
-          <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Tipe</Text>
-          <View style={styles.typeRow}>
-            {(['income', 'expense', 'both'] as const).map(t => (
-              <TouchableOpacity
-                key={t}
-                style={[styles.typeBtn, { borderColor: type === t ? color : colors.border },
-                  type === t && { backgroundColor: hexToRgba(color, 0.15) }]}
-                onPress={() => setType(t)}
-              >
-                <Text style={[styles.typeText, { color: type === t ? color : colors.textMuted }]}>
-                  {t === 'income' ? 'Pemasukan' : t === 'expense' ? 'Pengeluaran' : 'Keduanya'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Ikon</Text>
-          <View style={styles.iconGrid}>
-            {CAT_ICONS.map(ic => (
-              <TouchableOpacity
-                key={ic}
-                style={[styles.iconOption, { borderColor: icon === ic ? color : colors.border },
-                  icon === ic && { backgroundColor: hexToRgba(color, 0.15) }]}
-                onPress={() => setIcon(ic)}
-              >
-                <Ionicons name={ic as any} size={22} color={icon === ic ? color : colors.textMuted} />
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Warna</Text>
-          <View style={styles.colorRow}>
-            {WALLET_COLORS.map(c => (
-              <TouchableOpacity
-                key={c}
-                style={[styles.colorDot, { backgroundColor: c }, color === c && styles.colorDotSelected]}
-                onPress={() => setColor(c)}
-              />
-            ))}
-          </View>
-
-          <View style={styles.modalButtons}>
-            <TouchableOpacity style={[styles.cancelBtn, { borderColor: colors.border }]} onPress={onClose}>
-              <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Batal</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: Colors.primary }]} onPress={handleSave}>
-              <Text style={styles.saveText}>Simpan</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
 
 // ── PIN Change Modal ─────────────────────────────────────────────────────────
 function PinModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors } = useTheme();
   const { pin_hash, setSetting } = useSettingsStore();
+  
   const [step, setStep] = useState<'current' | 'new' | 'confirm'>('new');
-  const [currentPin, setCurrentPin] = useState('');
+  const [pinInput, setPinInput] = useState('');
   const [newPin, setNewPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
+  const [error, setError] = useState(false);
+  const [shakeAnim] = useState(new Animated.Value(0));
+
   const hasPinSet = !!pin_hash;
 
   React.useEffect(() => {
     if (visible) {
       setStep(hasPinSet ? 'current' : 'new');
-      setCurrentPin(''); setNewPin(''); setConfirmPin('');
+      setPinInput('');
+      setNewPin('');
+      setError(false);
     }
-  }, [visible]);
+  }, [visible, hasPinSet]);
 
-  const handleNext = async () => {
-    if (step === 'current') {
-      const valid = await verifyPin(currentPin, pin_hash);
-      if (!valid) { Alert.alert('Error', 'PIN saat ini salah'); return; }
-      setStep('new');
-    } else if (step === 'new') {
-      if (newPin.length !== 6) { Alert.alert('Error', 'PIN harus tepat 6 angka'); return; }
-      setStep('confirm');
-    } else {
-      if (confirmPin !== newPin) { Alert.alert('Error', 'PIN tidak cocok'); return; }
-      const hash = await hashPin(newPin);
-      await setSetting('pin_hash', hash);
-      await setSetting('pin_enabled', true);
-      Alert.alert('✅ Berhasil', 'PIN berhasil diperbarui');
-      onClose();
+  const shake = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    setError(true);
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 8, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+    ]).start(() => {
+      setError(false);
+      setPinInput('');
+    });
+  };
+
+  const handleKeyPress = async (key: string) => {
+    if (key === '⌫') {
+      setPinInput(p => p.slice(0, -1));
+      return;
+    }
+
+    if (pinInput.length >= 6) return;
+
+    const nextPin = pinInput + key;
+    setPinInput(nextPin);
+
+    if (nextPin.length === 6) {
+      setTimeout(async () => {
+        if (step === 'current') {
+          const valid = await verifyPin(nextPin, pin_hash);
+          if (valid) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setStep('new');
+            setPinInput('');
+          } else {
+            shake();
+          }
+        } else if (step === 'new') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          setNewPin(nextPin);
+          setStep('confirm');
+          setPinInput('');
+        } else {
+          if (nextPin === newPin) {
+            try {
+              const hash = await hashPin(nextPin);
+              await setSetting('pin_hash', hash);
+              await setSetting('pin_enabled', true);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert('Berhasil', 'PIN Keamanan Anda berhasil diperbarui.');
+              onClose();
+            } catch (e) {
+              Alert.alert('Gagal', 'Gagal menyimpan PIN.');
+              setStep('new');
+              setPinInput('');
+            }
+          } else {
+            shake();
+          }
+        }
+      }, 150);
     }
   };
 
   const labels = {
     current: 'Masukkan PIN saat ini',
-    new: 'Buat PIN baru (6 digit)',
-    confirm: 'Konfirmasi PIN baru',
+    new: 'Masukkan PIN baru (6 digit)',
+    confirm: 'Konfirmasi PIN baru Anda',
   };
+
+  const dots = Array(6).fill(0);
+  const keys = [
+    ['1', '2', '3'],
+    ['4', '5', '6'],
+    ['7', '8', '9'],
+    ['Batal', '0', '⌫'],
+  ];
 
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
+        <View style={[styles.modalSheet, { backgroundColor: colors.surface, paddingBottom: 36 }]}>
           <View style={styles.modalHandle} />
-          <Text style={[styles.modalTitle, { color: colors.text }]}>Ubah PIN</Text>
-          <Text style={[styles.pinLabel, { color: colors.textSecondary }]}>{labels[step]}</Text>
-          <TextInput
-            style={[styles.pinInput, { color: colors.text, backgroundColor: colors.input, borderColor: Colors.primary }]}
-            keyboardType="number-pad"
-            secureTextEntry
-            maxLength={6}
-            value={step === 'current' ? currentPin : step === 'new' ? newPin : confirmPin}
-            onChangeText={step === 'current' ? setCurrentPin : step === 'new' ? setNewPin : setConfirmPin}
-            placeholder="••••••"
-            placeholderTextColor={colors.textMuted}
-          />
-          <View style={styles.modalButtons}>
-            <TouchableOpacity style={[styles.cancelBtn, { borderColor: colors.border }]} onPress={onClose}>
-              <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Batal</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: Colors.primary }]} onPress={handleNext}>
-              <Text style={styles.saveText}>{step === 'confirm' ? 'Simpan' : 'Lanjut'}</Text>
-            </TouchableOpacity>
+          
+          <View style={{ alignItems: 'center', marginVertical: 8 }}>
+            <View style={[styles.lockIconContainer, { backgroundColor: hexToRgba(Colors.primary, 0.1) }]}>
+              <Ionicons name="lock-closed" size={24} color={Colors.primary} />
+            </View>
+            <Text style={[styles.modalTitle, { color: colors.text, marginTop: 12, marginBottom: 4 }]}>
+              {hasPinSet ? 'Ubah PIN Keamanan' : 'Buat PIN Keamanan'}
+            </Text>
+            <Text style={[styles.pinLabel, { color: colors.textSecondary, fontSize: 13 }]}>
+              {labels[step]}
+            </Text>
+          </View>
+
+          {/* PIN Dots */}
+          <Animated.View style={[styles.modalDotsContainer, { transform: [{ translateX: shakeAnim }] }]}>
+            {dots.map((_, i) => {
+              const isFilled = i < pinInput.length;
+              return (
+                <View
+                  key={i}
+                  style={[
+                    styles.modalDot,
+                    { borderColor: error ? Colors.expense : isFilled ? Colors.primary : colors.border },
+                    isFilled && { backgroundColor: Colors.primary },
+                    error && { backgroundColor: Colors.expense }
+                  ]}
+                />
+              );
+            })}
+          </Animated.View>
+
+          {/* Custom Numeric Keypad */}
+          <View style={styles.modalKeypad}>
+            {keys.map((row, rIdx) => (
+              <View key={rIdx} style={styles.modalKeypadRow}>
+                {row.map((k, kIdx) => {
+                  const isSpecial = k === 'Batal' || k === '⌫';
+                  return (
+                    <TouchableOpacity
+                      key={kIdx}
+                      style={[
+                        styles.modalKeyBtn,
+                        { backgroundColor: isSpecial ? 'transparent' : colors.input }
+                      ]}
+                      onPress={() => {
+                        if (k === 'Batal') {
+                          onClose();
+                        } else {
+                          handleKeyPress(k);
+                        }
+                      }}
+                      activeOpacity={0.6}
+                    >
+                      {k === '⌫' ? (
+                        <Ionicons name="backspace" size={22} color={colors.text} />
+                      ) : k === 'Batal' ? (
+                        <Text style={[styles.modalKeyCancelText, { color: colors.textSecondary }]}>Batal</Text>
+                      ) : (
+                        <Text style={[styles.modalKeyText, { color: colors.text }]}>{k}</Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
           </View>
         </View>
       </View>
@@ -328,19 +247,13 @@ export default function ProfileScreen() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { profile_name, dark_mode, pin_enabled, biometric_enabled, setSetting, toggleDarkMode, loadSettings, login_email } = useSettingsStore();
-  const { wallets, addWallet, updateWallet, deleteWallet, loadWallets } = useWalletStore();
-  const { categories, addCategory, updateCategory, deleteCategory, loadCategories } = useCategoryStore();
+  const { loadWallets } = useWalletStore();
+  const { loadCategories } = useCategoryStore();
   const { loadTransactions, loadMonthSummary } = useTransactionStore();
 
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(profile_name);
-  const [showWalletModal, setShowWalletModal] = useState(false);
-  const [showCatModal, setShowCatModal] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
-  const [editingWallet, setEditingWallet] = useState<Wallet | undefined>();
-  const [editingCat, setEditingCat] = useState<Category | undefined>();
-  const [expandWallets, setExpandWallets] = useState(false);
-  const [expandCats, setExpandCats] = useState(false);
 
   const handleExportCSV = async () => {
     try {
@@ -372,7 +285,7 @@ export default function ProfileScreen() {
 
   const handleRestore = async () => {
     Alert.alert(
-      '⚠️ Pemulihan Data',
+      'Pemulihan Data',
       'Memulihkan data akan menghapus seluruh data Anda saat ini dan menggantinya dengan data dari file cadangan. Lanjutkan?',
       [
         { text: 'Batal', style: 'cancel' },
@@ -392,7 +305,7 @@ export default function ProfileScreen() {
                 loadMonthSummary(),
               ]);
 
-              Alert.alert('✅ Berhasil', 'Data Anda berhasil dipulihkan dan disinkronisasikan!');
+              Alert.alert('Berhasil', 'Data Anda berhasil dipulihkan dan disinkronisasikan!');
             } catch (e: any) {
               Alert.alert('Gagal Restore', e.message || 'Terjadi kesalahan');
             }
@@ -407,38 +320,32 @@ export default function ProfileScreen() {
     setEditingName(false);
   };
 
-  const handleDeleteWallet = (wallet: Wallet) => {
-    Alert.alert(
-      'Hapus Dompet',
-      `Yakin hapus "${wallet.name}"? Semua transaksi di dompet ini juga akan terhapus.`,
-      [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Hapus', style: 'destructive', onPress: () => deleteWallet(wallet.id) },
-      ]
-    );
-  };
-
-  const handleDeleteCat = (cat: Category) => {
-    if (cat.is_default) { Alert.alert('Info', 'Kategori bawaan tidak dapat dihapus'); return; }
-    Alert.alert('Hapus Kategori', `Yakin hapus "${cat.name}"?`, [
-      { text: 'Batal', style: 'cancel' },
-      { text: 'Hapus', style: 'destructive', onPress: () => deleteCategory(cat.id) },
-    ]);
-  };
-
-  const userCategories = categories.filter(c => !c.is_default);
-  const displayCats = expandCats ? categories : categories.slice(0, 5);
-  const displayWallets = expandWallets ? wallets : wallets.slice(0, 3);
+  const renderHeader = (title: string) => (
+    <View style={[styles.header, { paddingTop: insets.top + 12, flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
+      <Text style={[styles.headerTitle, { color: colors.text, flex: 1 }]}>{title}</Text>
+    </View>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Profil</Text>
-      </View>
+      {renderHeader('Profil')}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Profile Card */}
-        <View style={[styles.profileCard, { backgroundColor: Colors.primary }]}>
+        <LinearGradient
+          colors={['#1A6FE8', '#4F46E5', '#6366F1']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.profileCard}
+        >
+          {/* Decorative circles for texture */}
+          <View style={styles.profileCircle1}>
+            <LinearGradient colors={['rgba(255, 255, 255, 0.16)', 'rgba(255, 255, 255, 0.01)']} style={{ flex: 1 }} />
+          </View>
+          <View style={styles.profileCircle2}>
+            <LinearGradient colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.01)']} style={{ flex: 1 }} />
+          </View>
+
           <View style={styles.profileAvatar}>
             <Text style={styles.profileAvatarText}>
               {(profile_name || 'P')[0].toUpperCase()}
@@ -457,19 +364,18 @@ export default function ProfileScreen() {
               />
             </View>
           ) : (
-            <TouchableOpacity onPress={() => setEditingName(true)}>
+            <TouchableOpacity onPress={() => setEditingName(true)} style={{ alignItems: 'center' }}>
               <Text style={styles.profileName}>{profile_name}</Text>
-              <Text style={styles.profileSubtitle}>Ketuk untuk ubah nama ✏️</Text>
+              <Text style={styles.profileSubtitle}>Ketuk untuk ubah nama</Text>
             </TouchableOpacity>
           )}
-        </View>
+        </LinearGradient>
 
         {/* Preferences */}
         <SectionHeader title="Preferensi" />
         <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
           <SettingsRow
             icon="moon"
-            iconColor="#8B5CF6"
             label="Mode Gelap"
             rightEl={
               <Switch
@@ -482,15 +388,14 @@ export default function ProfileScreen() {
           />
           <SettingsRow
             icon="lock-closed"
-            iconColor={Colors.primary}
             label="PIN Keamanan"
             subtitle={pin_enabled ? 'Aktif' : 'Nonaktif'}
             onPress={() => setShowPinModal(true)}
           />
           <SettingsRow
             icon="finger-print"
-            iconColor={Colors.income}
             label="Sidik Jari"
+            hideDivider={true}
             rightEl={
               <Switch
                 value={biometric_enabled}
@@ -500,10 +405,69 @@ export default function ProfileScreen() {
               />
             }
           />
+        </View>
+
+        {/* Manage Data Settings */}
+        <SectionHeader title="Kelola Data Keuangan" />
+        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
+          <SettingsRow
+            icon="wallet"
+            label="Kelola Dompet"
+            subtitle="Atur rekening, kas, dan dompet keuangan"
+            onPress={() => router.push('/wallet-manager' as any)}
+          />
+          <SettingsRow
+            icon="pricetags"
+            label="Kelola Kategori"
+            subtitle="Atur kategori pemasukan & pengeluaran"
+            hideDivider={true}
+            onPress={() => router.push('/category-manager' as any)}
+          />
+        </View>
+
+        {/* Backup & Restore */}
+        <SectionHeader title="Ekspor & Cadangkan Data" />
+        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
+          <SettingsRow
+            icon="document-text"
+            label="Ekspor Laporan CSV"
+            subtitle="Ekspor riwayat transaksi ke file CSV"
+            onPress={handleExportCSV}
+          />
+          <SettingsRow
+            icon="code-working"
+            label="Ekspor Laporan HTML"
+            subtitle="Ekspor laporan siap print"
+            onPress={handleExportHTML}
+          />
+          <SettingsRow
+            icon="cloud-upload"
+            label="Cadangkan Data (Backup JSON)"
+            subtitle="Simpan data ke file JSON"
+            onPress={handleBackup}
+          />
+          <SettingsRow
+            icon="cloud-download"
+            label="Puluhkan Data (Restore JSON)"
+            subtitle="Restore data dari file backup"
+            hideDivider={true}
+            onPress={handleRestore}
+          />
+        </View>
+
+        {/* About */}
+        <SectionHeader title="Tentang Aplikasi" />
+        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
+          <SettingsRow icon="information-circle" label="Versi Keobi" value="1.0.0" hideDivider={true} />
+        </View>
+
+        {/* Danger Zone */}
+        <SectionHeader title="Zona Berbahaya" />
+        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
           <SettingsRow
             icon="log-out"
-            iconColor={Colors.expense}
             label="Keluar (Log Out)"
+            labelColor={Colors.expense}
             subtitle="Keluar dan akhiri sesi login akun"
             onPress={() => {
               Alert.alert('Keluar', 'Apakah Anda yakin ingin keluar dari akun?', [
@@ -521,12 +485,13 @@ export default function ProfileScreen() {
           />
           <SettingsRow
             icon="trash-bin"
-            iconColor="#EF4444"
             label="Hapus Akun Permanen"
+            labelColor={Colors.expense}
             subtitle="Hapus seluruh data akun secara permanen"
+            hideDivider={true}
             onPress={() => {
               Alert.alert(
-                '⚠️ Hapus Akun',
+                'Hapus Akun',
                 'Apakah Anda yakin ingin menghapus akun secara permanen? Seluruh data transaksi, dompet, kategori, dan preferensi akan dihapus selamanya.',
                 [
                   { text: 'Batal', style: 'cancel' },
@@ -535,7 +500,7 @@ export default function ProfileScreen() {
                     style: 'destructive',
                     onPress: () => {
                       Alert.alert(
-                        '❗ Konfirmasi Terakhir',
+                        'Konfirmasi Terakhir',
                         'Tindakan ini tidak dapat dibatalkan. Seluruh data Anda akan hilang selamanya. Lanjutkan?',
                         [
                           { text: 'Batal', style: 'cancel' },
@@ -556,7 +521,7 @@ export default function ProfileScreen() {
                                   loadTransactions(true),
                                   loadMonthSummary(),
                                 ]);
-                                Alert.alert('✅ Akun Dihapus', 'Semua data akun Anda berhasil dibersihkan.');
+                                Alert.alert('Akun Dihapus', 'Semua data akun Anda berhasil dibersihkan.');
                                 router.replace('/login' as any);
                               } catch (e: any) {
                                 Alert.alert('Gagal Hapus Akun', e.message || 'Terjadi kesalahan');
@@ -572,142 +537,8 @@ export default function ProfileScreen() {
             }}
           />
         </View>
-
-        {/* Wallets */}
-        <SectionHeader title="Kelola Dompet" />
-        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
-          {displayWallets.map(wallet => (
-            <View key={wallet.id} style={[styles.walletRow, { borderBottomColor: colors.border }]}>
-              <View style={[styles.walletRowIcon, { backgroundColor: hexToRgba(wallet.color, 0.15) }]}>
-                <Ionicons name={(wallet.icon === 'bank' ? 'business' : wallet.icon) as any} size={20} color={wallet.color} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.walletRowName, { color: colors.text }]}>{wallet.name}</Text>
-                <Text style={[styles.walletRowBalance, { color: wallet.color }]}>
-                  {formatCurrency(wallet.balance)}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => { setEditingWallet(wallet); setShowWalletModal(true); }}>
-                <Ionicons name="pencil" size={18} color={colors.textMuted} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDeleteWallet(wallet)} style={{ marginLeft: 8 }}>
-                <Ionicons name="trash" size={18} color={Colors.expense} />
-              </TouchableOpacity>
-            </View>
-          ))}
-          {wallets.length > 3 && (
-            <TouchableOpacity onPress={() => setExpandWallets(e => !e)} style={styles.expandBtn}>
-              <Text style={[styles.expandText, { color: Colors.primary }]}>
-                {expandWallets ? 'Tampilkan lebih sedikit' : `Lihat ${wallets.length - 3} lainnya`}
-              </Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.addItemBtn, { borderColor: Colors.primary }]}
-            onPress={() => { setEditingWallet(undefined); setShowWalletModal(true); }}
-          >
-            <Ionicons name="add" size={18} color={Colors.primary} />
-            <Text style={[styles.addItemText, { color: Colors.primary }]}>Tambah Dompet</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Categories */}
-        <SectionHeader title="Kelola Kategori" />
-        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
-          {displayCats.map(cat => (
-            <View key={cat.id} style={[styles.catRow, { borderBottomColor: colors.border }]}>
-              <View style={[styles.catRowIcon, { backgroundColor: hexToRgba(cat.color, 0.15) }]}>
-                <Ionicons name={cat.icon as any} size={18} color={cat.color} />
-              </View>
-              <Text style={[styles.catRowName, { color: colors.text }]} numberOfLines={1}>{cat.name}</Text>
-              <View style={[styles.catTypeBadge, { backgroundColor: hexToRgba(
-                cat.type === 'income' ? Colors.income : cat.type === 'expense' ? Colors.expense : Colors.primary, 0.15
-              )}]}>
-                <Text style={[styles.catTypeText, { color: cat.type === 'income' ? Colors.income : cat.type === 'expense' ? Colors.expense : Colors.primary }]}>
-                  {cat.type === 'income' ? 'Masuk' : cat.type === 'expense' ? 'Keluar' : 'Keduanya'}
-                </Text>
-              </View>
-              {!cat.is_default && (
-                <>
-                  <TouchableOpacity onPress={() => { setEditingCat(cat); setShowCatModal(true); }}>
-                    <Ionicons name="pencil" size={16} color={colors.textMuted} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDeleteCat(cat)} style={{ marginLeft: 8 }}>
-                    <Ionicons name="trash" size={16} color={Colors.expense} />
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          ))}
-          {categories.length > 5 && (
-            <TouchableOpacity onPress={() => setExpandCats(e => !e)} style={styles.expandBtn}>
-              <Text style={[styles.expandText, { color: Colors.primary }]}>
-                {expandCats ? 'Tampilkan lebih sedikit' : `Lihat ${categories.length - 5} lainnya`}
-              </Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.addItemBtn, { borderColor: Colors.primary }]}
-            onPress={() => { setEditingCat(undefined); setShowCatModal(true); }}
-          >
-            <Ionicons name="add" size={18} color={Colors.primary} />
-            <Text style={[styles.addItemText, { color: Colors.primary }]}>Tambah Kategori</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Backup & Restore */}
-        <SectionHeader title="Ekspor & Cadangkan Data" />
-        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
-          <SettingsRow
-            icon="document-text"
-            iconColor={Colors.primary}
-            label="Ekspor Laporan CSV"
-            subtitle="Ekspor riwayat transaksi ke file CSV"
-            onPress={handleExportCSV}
-          />
-          <SettingsRow
-            icon="code-working"
-            iconColor={Colors.accent}
-            label="Ekspor Laporan HTML"
-            subtitle="Ekspor laporan siap print"
-            onPress={handleExportHTML}
-          />
-          <SettingsRow
-            icon="cloud-upload"
-            iconColor={Colors.income}
-            label="Cadangkan Data (Backup JSON)"
-            subtitle="Simpan data ke file JSON"
-            onPress={handleBackup}
-          />
-          <SettingsRow
-            icon="cloud-download"
-            iconColor="#8B5CF6"
-            label="Puluhkan Data (Restore JSON)"
-            subtitle="Restore data dari file backup"
-            onPress={handleRestore}
-          />
-        </View>
-
-        {/* About */}
-        <SectionHeader title="Tentang Aplikasi" />
-        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
-          <SettingsRow icon="information-circle" iconColor={Colors.primary} label="Versi Keobi" value="1.0.0" />
-          <SettingsRow icon="heart" iconColor={Colors.expense} label="Dibuat dengan ❤️" value="2024" />
-        </View>
       </ScrollView>
 
-      <WalletModal
-        visible={showWalletModal}
-        onClose={() => { setShowWalletModal(false); setEditingWallet(undefined); }}
-        initial={editingWallet}
-        onSave={data => editingWallet ? updateWallet(editingWallet.id, data) : addWallet(data)}
-      />
-      <CategoryModal
-        visible={showCatModal}
-        onClose={() => { setShowCatModal(false); setEditingCat(undefined); }}
-        initial={editingCat}
-        onSave={data => editingCat ? updateCategory(editingCat.id, data) : addCategory(data)}
-      />
       <PinModal visible={showPinModal} onClose={() => setShowPinModal(false)} />
     </View>
   );
@@ -717,9 +548,34 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 20, paddingBottom: 12 },
   headerTitle: { fontSize: FontSize.xxl, fontWeight: '800' },
+  backBtn: {
+    paddingRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modeToggleContainer: {
+    flexDirection: 'row', marginHorizontal: 20, borderRadius: BorderRadius.md, padding: 4,
+  },
+  modeBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 12, borderRadius: BorderRadius.md,
+  },
+  modeBtnText: { fontSize: FontSize.md },
   profileCard: {
-    marginHorizontal: 20, borderRadius: BorderRadius.xl, padding: 24,
+    marginHorizontal: 20, borderRadius: BorderRadius.lg, padding: 24,
     alignItems: 'center', gap: 8, marginBottom: 24,
+    overflow: 'hidden',
+  },
+  profileCircle1: {
+    position: 'absolute', top: -30, right: -30,
+    width: 120, height: 120, borderRadius: 60,
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
+  },
+  profileCircle2: {
+    position: 'absolute', bottom: -40, left: -10,
+    width: 140, height: 140, borderRadius: 70,
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   profileAvatar: {
@@ -747,68 +603,55 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   settingsIcon: {
-    width: 36, height: 36, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center',
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   settingsLabel: { fontSize: FontSize.md, fontWeight: '600' },
   settingsSubtitle: { fontSize: 12, marginTop: 1 },
   settingsValue: { fontSize: FontSize.sm },
-  // Wallet rows
-  walletRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  walletRowIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  walletRowName: { fontSize: FontSize.sm, fontWeight: '600' },
-  walletRowBalance: { fontSize: 12, marginTop: 2 },
-  expandBtn: { paddingVertical: 12, alignItems: 'center' },
-  expandText: { fontSize: FontSize.sm, fontWeight: '600' },
-  addItemBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, margin: 12, paddingVertical: 12, borderRadius: BorderRadius.md,
-    borderWidth: 1.5, borderStyle: 'dashed',
-  },
-  addItemText: { fontSize: FontSize.sm, fontWeight: '700' },
-  // Category rows
-  catRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  catRowIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  catRowName: { flex: 1, fontSize: FontSize.sm, fontWeight: '600' },
-  catTypeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  catTypeText: { fontSize: 11, fontWeight: '600' },
   // Modals
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '90%' },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#ccc', alignSelf: 'center', marginBottom: 16 },
   modalTitle: { fontSize: FontSize.xl, fontWeight: '700', marginBottom: 16 },
-  input: {
-    borderWidth: 1, borderRadius: BorderRadius.md, padding: 14,
-    fontSize: FontSize.md, marginBottom: 12,
-  },
-  pickerLabel: { fontSize: FontSize.sm, fontWeight: '600', marginBottom: 8, marginTop: 4 },
-  iconGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  iconOption: {
-    width: 48, height: 48, borderRadius: BorderRadius.md,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1.5,
-  },
-  colorRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  colorDot: { width: 32, height: 32, borderRadius: 16 },
-  colorDotSelected: { borderWidth: 3, borderColor: '#fff', transform: [{ scale: 1.15 }] },
-  typeRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  typeBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: BorderRadius.md, borderWidth: 1.5 },
-  typeText: { fontSize: 12, fontWeight: '600' },
   modalButtons: { flexDirection: 'row', gap: 12, marginTop: 4 },
   cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: BorderRadius.lg, borderWidth: 1.5, alignItems: 'center' },
   cancelText: { fontSize: FontSize.md, fontWeight: '600' },
   saveBtn: { flex: 2, paddingVertical: 14, borderRadius: BorderRadius.lg, alignItems: 'center' },
   saveText: { color: '#fff', fontSize: FontSize.md, fontWeight: '700' },
   pinLabel: { fontSize: FontSize.md, marginBottom: 12 },
-  pinInput: {
-    borderWidth: 2, borderRadius: BorderRadius.lg, padding: 16,
-    fontSize: 24, textAlign: 'center', letterSpacing: 8, marginBottom: 20,
+  lockIconContainer: {
+    width: 50, height: 50, borderRadius: 25,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  modalDotsContainer: {
+    flexDirection: 'row', justifyContent: 'center', gap: 16,
+    marginVertical: 24,
+  },
+  modalDot: {
+    width: 14, height: 14, borderRadius: 7,
+    borderWidth: 1.5,
+    backgroundColor: 'transparent',
+  },
+  modalKeypad: {
+    marginTop: 8,
+    paddingHorizontal: 16,
+  },
+  modalKeypadRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 8,
+  },
+  modalKeyBtn: {
+    width: 68, height: 68, borderRadius: BorderRadius.md,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  modalKeyText: {
+    fontSize: 22, fontWeight: '700',
+  },
+  modalKeyCancelText: {
+    fontSize: 14, fontWeight: '600',
   },
 });

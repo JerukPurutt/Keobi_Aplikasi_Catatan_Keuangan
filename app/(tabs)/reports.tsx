@@ -135,7 +135,7 @@ export default function ReportsScreen() {
         ))}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Date Navigator */}
         <View style={styles.dateNav}>
           <TouchableOpacity
@@ -220,7 +220,7 @@ export default function ReportsScreen() {
             styles.netAmount,
             { color: summary.income >= summary.expense ? Colors.income : Colors.expense },
           ]}>
-            {summary.income >= summary.expense ? '📈 Surplus ' : '📉 Defisit '}
+            {summary.income >= summary.expense ? 'Surplus ' : 'Defisit '}
             {formatCurrency(Math.abs(summary.income - summary.expense))}
           </Text>
           <Text style={[styles.netSubtitle, { color: colors.textMuted }]}>

@@ -1,6 +1,6 @@
 // Root app layout with expo-router, auth guard, and app initialization
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Stack, router } from 'expo-router';
+import { Stack, router, ThemeProvider, DefaultTheme, DarkTheme } from 'expo-router';
 import { View, Text, ActivityIndicator, Alert, StatusBar, Image, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
@@ -8,13 +8,14 @@ import { useSettingsStore } from '../src/store/useSettingsStore';
 import { useWalletStore } from '../src/store/useWalletStore';
 import { useTransactionStore } from '../src/store/useTransactionStore';
 import { useCategoryStore } from '../src/store/useCategoryStore';
+import { useGoalStore } from '../src/store/useGoalStore';
 import { Colors } from '../src/constants/Colors';
 import getDatabase from '../src/db/database';
 import { useAlertStore } from '../src/store/useAlertStore';
 import CustomAlert from '../src/components/ui/CustomAlert';
 
 // Monkeypatch Alert.alert to use our custom alert modal globally
-Alert.alert = (title, message, buttons) => {
+(Alert as any).alert = (title: any, message: any, buttons: any) => {
   useAlertStore.getState().showAlert(
     title || '',
     message || '',
@@ -37,6 +38,7 @@ export default function RootLayout() {
   const { loadWallets } = useWalletStore();
   const { loadTransactions, loadMonthSummary } = useTransactionStore();
   const { loadCategories } = useCategoryStore();
+  const { loadGoals } = useGoalStore();
 
   const init = useCallback(async () => {
     try {
@@ -96,11 +98,13 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
 
       if (!session_active || !login_email) {
-        // Direct directly to login screen on first access or if not logged in
         router.replace('/login' as any);
       } else if (pin_enabled && pin_hash) {
-        // Redirect to PIN screen only if PIN is explicitly enabled and set up
         router.replace('/pin' as any);
+      }
+      // Load goals after auth confirmed
+      if (session_active && login_email) {
+        loadGoals(login_email);
       }
     }
   }, [isReady, isLoaded, authChecked, pin_enabled, pin_hash, session_active, login_email]);
@@ -117,7 +121,7 @@ export default function RootLayout() {
         }}
       >
         <StatusBar barStyle="light-content" translucent={true} backgroundColor="transparent" />
-        
+
         {/* Background decorative circles */}
         <View style={{
           position: 'absolute', top: -100, right: -100,
@@ -191,8 +195,16 @@ export default function RootLayout() {
 
   const bg = dark_mode ? Colors.dark.background : Colors.light.background;
 
+  const navigationTheme = {
+    ...(dark_mode ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(dark_mode ? DarkTheme.colors : DefaultTheme.colors),
+      background: bg,
+    },
+  };
+
   return (
-    <>
+    <ThemeProvider value={navigationTheme}>
       <StatusBar barStyle={dark_mode ? 'light-content' : 'dark-content'} translucent={true} backgroundColor="transparent" />
       <Stack
         screenOptions={{
@@ -205,10 +217,14 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
         <Stack.Screen name="pin" />
+        <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false }} />
+        <Stack.Screen name="goals" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="wallet/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="category/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="wallet-manager" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="category-manager" options={{ animation: 'slide_from_right' }} />
       </Stack>
       <CustomAlert />
-    </>
+    </ThemeProvider>
   );
 }
