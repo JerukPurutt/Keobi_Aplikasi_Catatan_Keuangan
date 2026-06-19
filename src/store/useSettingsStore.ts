@@ -13,6 +13,7 @@ interface SettingsState extends Settings {
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   dark_mode: false,
   profile_name: 'Pengguna',
+  profile_image: '',
   pin_enabled: false,
   pin_hash: '',
   biometric_enabled: false,
@@ -36,7 +37,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setSetting: async (key, value) => {
     set({ [key]: value } as any);
-    await settingsRepository.set(key, String(value));
+    if (key === 'profile_image') {
+      const email = get().login_email;
+      await settingsRepository.set(`profile_image_${email}`, String(value));
+    } else {
+      await settingsRepository.set(key, String(value));
+    }
   },
 
   toggleDarkMode: async () => {

@@ -3,7 +3,7 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, Animated, Dimensions, FlatList, Platform,
-  TextInput, Modal, Alert, KeyboardAvoidingView, TouchableWithoutFeedback
+  TextInput, Modal, Alert, KeyboardAvoidingView, TouchableWithoutFeedback, Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,12 +15,21 @@ import { useTransactionStore } from '../../src/store/useTransactionStore';
 import { useCategoryStore } from '../../src/store/useCategoryStore';
 import { useGoalStore } from '../../src/store/useGoalStore';
 import { useTheme } from '../../src/hooks/useTheme';
+import { useSettingsStore } from '../../src/store/useSettingsStore';
 import { Colors, BorderRadius, FontSize, FontWeight, Shadow } from '../../src/constants/Colors';
 import { formatCurrency, formatDate, formatTime, hexToRgba } from '../../src/utils/helpers';
 import { Transaction, Wallet, TransactionType } from '../../src/types';
 import { router, useFocusEffect } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const isValidUri = (uri: string | null | undefined): boolean => {
+  if (!uri) return false;
+  if (typeof uri !== 'string') return false;
+  const trimmed = uri.trim();
+  if (trimmed === '' || trimmed === 'undefined' || trimmed === 'null') return false;
+  return true;
+};
 
 // ── Reusable Scale Pressable for Micro-interactions ──────────────────────────
 function ScalePressable({ children, onPress, style, disabled }: {
@@ -117,9 +126,11 @@ function BalanceCard({ totalBalance, income, expense }: {
           <View style={styles.statIconContainer}>
             <Ionicons name="arrow-down-circle" size={18} color={Colors.income} />
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.statLabel}>Pemasukan</Text>
-            <Text style={styles.statValue}>{showBalance ? formatCurrency(income) : '••••'}</Text>
+            <Text style={styles.statValue} numberOfLines={1}>
+              {showBalance ? formatCurrency(income) : '••••'}
+            </Text>
           </View>
         </View>
         <View style={styles.balanceStatDivider} />
@@ -127,9 +138,11 @@ function BalanceCard({ totalBalance, income, expense }: {
           <View style={styles.statIconContainer}>
             <Ionicons name="arrow-up-circle" size={18} color={Colors.expense} />
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.statLabel}>Pengeluaran</Text>
-            <Text style={styles.statValue}>{showBalance ? formatCurrency(expense) : '••••'}</Text>
+            <Text style={styles.statValue} numberOfLines={1}>
+              {showBalance ? formatCurrency(expense) : '••••'}
+            </Text>
           </View>
         </View>
       </View>
@@ -464,6 +477,105 @@ function TransactionEditModal({
   );
 }
 
+// ── Notification Modal ───────────────────────────────────────────────────────
+interface NotificationModalProps {
+  visible: boolean;
+  onClose: () => void;
+  notifications: any[];
+  onMarkAllRead: () => void;
+  onItemPress: (id: string) => void;
+}
+
+function NotificationModal({
+  visible,
+  onClose,
+  notifications,
+  onMarkAllRead,
+  onItemPress,
+}: NotificationModalProps) {
+  const { colors } = useTheme();
+
+  return (
+    <Modal visible={visible} transparent animationType="slide">
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
+          <View style={styles.modalHandle} />
+          
+          <View style={styles.modalHeaderRow}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Notifikasi</Text>
+            {notifications.some(n => !n.read) && (
+              <TouchableOpacity onPress={onMarkAllRead}>
+                <Text style={{ color: Colors.primary, fontWeight: '600', fontSize: FontSize.sm }}>
+                  Tandai semua dibaca
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            style={{ flexShrink: 1, maxHeight: Dimensions.get('window').height * 0.6 }}
+            contentContainerStyle={{ paddingBottom: 16 }}
+          >
+            {notifications.length === 0 ? (
+              <View style={styles.notifEmptyState}>
+                <Ionicons name="notifications-off-outline" size={48} color={colors.textMuted} />
+                <Text style={[styles.notifEmptyTitle, { color: colors.textSecondary }]}>
+                  Tidak ada notifikasi
+                </Text>
+              </View>
+            ) : (
+              notifications.map((n, idx) => {
+                return (
+                  <TouchableOpacity
+                    key={n.id}
+                    style={[
+                      styles.notifItem,
+                      !n.read && { backgroundColor: hexToRgba(Colors.primary, 0.05) },
+                      { borderBottomColor: colors.border }
+                    ]}
+                    onPress={() => onItemPress(n.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.notifIconContainer, { backgroundColor: hexToRgba(n.iconColor, 0.12) }]}>
+                      <Ionicons name={n.icon} size={20} color={n.iconColor} />
+                    </View>
+                    
+                    <View style={styles.notifContent}>
+                      <View style={styles.notifHeader}>
+                        <Text style={[
+                          styles.notifTitle, 
+                          { color: colors.text },
+                          !n.read && { fontWeight: '700' }
+                        ]}>
+                          {n.title}
+                        </Text>
+                        {!n.read && (
+                          <View style={styles.notifUnreadDot} />
+                        )}
+                      </View>
+                      <Text style={[styles.notifBody, { color: colors.textSecondary }]} numberOfLines={2}>
+                        {n.body}
+                      </Text>
+                      <Text style={[styles.notifTime, { color: colors.textMuted }]}>
+                        {n.time}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </ScrollView>
+
+          <TouchableOpacity style={[styles.modalCancelBtn, { borderColor: colors.border, marginTop: 12 }]} onPress={onClose}>
+            <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Tutup</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { colors } = useTheme();
@@ -480,10 +592,70 @@ export default function Dashboard() {
   } = useTransactionStore();
   const { goals } = useGoalStore();
 
+  // Settings & Theme
+  const profileName = useSettingsStore(s => s.profile_name);
+  const profileImage = useSettingsStore(s => s.profile_image);
+  const dark_mode = useSettingsStore(s => s.dark_mode);
+  const toggleDarkMode = useSettingsStore(s => s.toggleDarkMode);
+
   const [refreshing, setRefreshing] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<Transaction | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showNotifModal, setShowNotifModal] = useState(false);
+
+  // Mock Notifications State
+  const [notifications, setNotifications] = useState([
+    {
+      id: '1',
+      title: 'Selamat Datang di Keobi! 🎉',
+      body: 'Kelola pemasukan dan pengeluaran harian Anda dengan mudah dan aman.',
+      time: 'Baru saja',
+      read: false,
+      icon: 'sparkles',
+      iconColor: '#1A6FE8',
+    },
+    {
+      id: '2',
+      title: 'Tips Keuangan Hari Ini 💡',
+      body: 'Usahakan menyisihkan minimal 20% dari penghasilan Anda untuk tabungan atau investasi.',
+      time: '2 jam yang lalu',
+      read: false,
+      icon: 'bulb',
+      iconColor: '#F5C842',
+    },
+    {
+      id: '3',
+      title: 'Buat Target Tabungan! 🏆',
+      body: 'Wujudkan impian Anda dengan membuat target tabungan baru di menu Target Tabungan.',
+      time: '1 hari yang lalu',
+      read: false,
+      icon: 'trophy',
+      iconColor: '#22C55E',
+    },
+  ]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleMarkAllRead = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const handleItemPress = (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setNotifications(prev =>
+      prev.map(n => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
+
+  const getGreetingText = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 11) return 'Selamat Pagi';
+    if (hour >= 11 && hour < 15) return 'Selamat Siang';
+    if (hour >= 15 && hour < 18) return 'Selamat Sore';
+    return 'Selamat Malam';
+  };
 
   // Staggered dashboard entrance animations
   const fadeHeader = useRef(new Animated.Value(0)).current;
@@ -563,19 +735,44 @@ export default function Dashboard() {
             { paddingTop: insets.top + 12, opacity: fadeHeader, transform: [{ translateY: slideHeader }] }
           ]}
         >
-          <View>
-            <Text style={[styles.appName, { color: Colors.primary }]}>Keobi</Text>
-            <Text style={[styles.greetingText, { color: colors.textSecondary }]}>
-              Kelola keuanganmu
+          <View style={{ flex: 1, marginRight: 8 }}>
+            <Text style={[styles.greetingLabel, { color: colors.textSecondary }]}>
+              {getGreetingText()}
+            </Text>
+            <Text style={[styles.profileNameHeader, { color: colors.text }]} numberOfLines={1}>
+              {profileName}
             </Text>
           </View>
-          <TouchableOpacity
-            style={[styles.notifButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={() => router.push('/profile' as any)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="person" size={20} color={Colors.primary} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {/* Theme Toggle Button */}
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={toggleDarkMode}
+              activeOpacity={0.7}
+            >
+              <Ionicons name={dark_mode ? 'sunny' : 'moon'} size={20} color={Colors.primary} />
+            </TouchableOpacity>
+
+            {/* Profile Avatar Button */}
+            <TouchableOpacity
+              style={[styles.avatarButton, { borderColor: colors.border }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/profile' as any);
+              }}
+              activeOpacity={0.7}
+            >
+              {profileImage && isValidUri(profileImage) ? (
+                <Image source={{ uri: profileImage }} style={styles.headerAvatarImage} />
+              ) : (
+                <View style={[styles.headerAvatarPlaceholder, { backgroundColor: colors.surfaceSecondary }]}>
+                  <Text style={[styles.headerAvatarText, { color: Colors.primary }]}>
+                    {(profileName || 'P')[0].toUpperCase()}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
         {/* Balance Card */}
@@ -740,6 +937,15 @@ export default function Dashboard() {
           await loadWallets(); // Reload wallets so balance updates
         }}
         wallets={wallets}
+      />
+
+      {/* Notifications Modal */}
+      <NotificationModal
+        visible={showNotifModal}
+        onClose={() => setShowNotifModal(false)}
+        notifications={notifications}
+        onMarkAllRead={handleMarkAllRead}
+        onItemPress={handleItemPress}
       />
     </View>
   );
@@ -1002,4 +1208,123 @@ const styles = StyleSheet.create({
   },
   goalsBannerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '700', marginBottom: 2 },
   goalsBannerSub: { color: 'rgba(255,255,255,0.85)', fontSize: FontSize.xs },
+  
+  // Header Greeting & Actions
+  greetingLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: '500',
+  },
+  profileNameHeader: {
+    fontSize: FontSize.xxl,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    borderRadius: 9,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  avatarButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  headerAvatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  headerAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerAvatarText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  // Notifications Modal Items
+  notifEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 8,
+  },
+  notifEmptyTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+  },
+  notifItem: {
+    flexDirection: 'row',
+    padding: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+    alignItems: 'flex-start',
+    borderRadius: BorderRadius.md,
+    marginVertical: 2,
+  },
+  notifIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notifContent: {
+    flex: 1,
+    gap: 4,
+  },
+  notifHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  notifTitle: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    flex: 1,
+  },
+  notifBody: {
+    fontSize: FontSize.sm,
+    lineHeight: 18,
+  },
+  notifTime: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  notifUnreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+    marginLeft: 8,
+  },
 });

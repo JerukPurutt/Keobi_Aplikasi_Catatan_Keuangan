@@ -24,7 +24,9 @@
         "USE_FINGERPRINT",
         "RECEIVE_BOOT_COMPLETED",
         "SCHEDULE_EXACT_ALARM",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ],
       "package": "com.keobi.finance"
     },
@@ -67,6 +69,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "root": "./app"
+      },
+      "eas": {
+        "projectId": "55bcbca1-d7d4-475e-9f92-0f948f5c6577"
+      }
     }
   }
 }

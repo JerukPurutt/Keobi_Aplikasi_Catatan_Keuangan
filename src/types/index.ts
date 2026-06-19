@@ -45,6 +45,7 @@ export interface Transaction {
 export interface Settings {
   dark_mode: boolean;
   profile_name: string;
+  profile_image: string;
   pin_enabled: boolean;
   pin_hash: string;
   biometric_enabled: boolean;

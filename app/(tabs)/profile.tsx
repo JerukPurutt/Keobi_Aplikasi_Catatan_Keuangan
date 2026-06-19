@@ -2,8 +2,9 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Modal, Alert, Switch, Dimensions, Animated,
+  TextInput, Modal, Alert, Switch, Dimensions, Animated, Image
 } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -242,18 +243,81 @@ function PinModal({ visible, onClose }: { visible: boolean; onClose: () => void 
   );
 }
 
+// Helper function to check valid image URI
+const isValidUri = (uri: string | null | undefined): boolean => {
+  if (!uri) return false;
+  if (typeof uri !== 'string') return false;
+  const trimmed = uri.trim();
+  if (trimmed === '' || trimmed === 'undefined' || trimmed === 'null') return false;
+  return true;
+};
+
 // ── Main Profile Screen ───────────────────────────────────────────────────────
 export default function ProfileScreen() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { profile_name, dark_mode, pin_enabled, biometric_enabled, setSetting, toggleDarkMode, loadSettings, login_email } = useSettingsStore();
+  const { profile_name, profile_image, dark_mode, pin_enabled, biometric_enabled, setSetting, toggleDarkMode, loadSettings, login_email } = useSettingsStore();
   const { loadWallets } = useWalletStore();
   const { loadCategories } = useCategoryStore();
   const { loadTransactions, loadMonthSummary } = useTransactionStore();
 
+  const [tempName, setTempName] = useState(profile_name);
+  const [tempImage, setTempImage] = useState(profile_image);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(profile_name);
   const [showPinModal, setShowPinModal] = useState(false);
+
+  // Sync with store settings when they load
+  React.useEffect(() => {
+    setTempName(profile_name);
+    setNameInput(profile_name);
+  }, [profile_name]);
+
+  React.useEffect(() => {
+    setTempImage(profile_image);
+  }, [profile_image]);
+
+  const handlePickImage = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const uri = result.assets[0].uri;
+        setTempImage(uri);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Gagal memilih foto profil');
+    }
+  };
+
+  const handleAvatarPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    const options: any[] = [
+      { text: 'Pilih dari Galeri', onPress: handlePickImage },
+    ];
+
+    if (tempImage && isValidUri(tempImage)) {
+      options.push({
+        text: 'Hapus Foto Profil',
+        style: 'destructive' as const,
+        onPress: () => {
+          setTempImage('');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        },
+      });
+    }
+
+    options.push({ text: 'Batal', style: 'cancel' as const, onPress: () => {} });
+
+    Alert.alert('Foto Profil', 'Pilih tindakan untuk foto profil Anda', options);
+  };
 
   const handleExportCSV = async () => {
     try {
@@ -315,9 +379,36 @@ export default function ProfileScreen() {
     );
   };
 
-  const saveName = async () => {
-    if (nameInput.trim()) await setSetting('profile_name', nameInput.trim());
+  const finishEditingName = () => {
+    if (nameInput.trim()) {
+      setTempName(nameInput.trim());
+    } else {
+      setNameInput(tempName);
+    }
     setEditingName(false);
+  };
+
+  const handleSaveProfileChanges = async () => {
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      let changed = false;
+
+      if (tempName.trim() && tempName.trim() !== profile_name) {
+        await setSetting('profile_name', tempName.trim());
+        changed = true;
+      }
+      if (tempImage !== profile_image) {
+        await setSetting('profile_image', tempImage);
+        changed = true;
+      }
+
+      if (changed) {
+        Alert.alert('Berhasil', 'Profil Anda berhasil diperbarui.');
+      }
+    } catch (error) {
+      console.error('Error saving profile changes:', error);
+      Alert.alert('Gagal', 'Terjadi kesalahan saat menyimpan perubahan profil.');
+    }
   };
 
   const renderHeader = (title: string) => (
@@ -325,6 +416,8 @@ export default function ProfileScreen() {
       <Text style={[styles.headerTitle, { color: colors.text, flex: 1 }]}>{title}</Text>
     </View>
   );
+
+  const hasChanges = tempName.trim() !== profile_name || tempImage !== profile_image;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -346,26 +439,47 @@ export default function ProfileScreen() {
             <LinearGradient colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.01)']} style={{ flex: 1 }} />
           </View>
 
-          <View style={styles.profileAvatar}>
-            <Text style={styles.profileAvatarText}>
-              {(profile_name || 'P')[0].toUpperCase()}
-            </Text>
-          </View>
+          {/* Yellow save button at top-right */}
+          {hasChanges && (
+            <TouchableOpacity
+              style={styles.saveProfileBtn}
+              onPress={handleSaveProfileChanges}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="checkmark-circle" size={30} color="#FACC15" />
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.85} style={styles.profileAvatar}>
+            {tempImage && isValidUri(tempImage) ? (
+              <Image source={{ uri: tempImage }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.profileAvatarText}>
+                {(tempName || 'P')[0].toUpperCase()}
+              </Text>
+            )}
+            <View style={styles.editAvatarBadge}>
+              <Ionicons name="camera" size={12} color="#FFF" />
+            </View>
+          </TouchableOpacity>
           {editingName ? (
-            <View style={styles.nameEdit}>
+            <View style={styles.nameEditRow}>
               <TextInput
-                style={[styles.nameInput, { color: '#fff', borderBottomColor: 'rgba(255,255,255,0.5)' }]}
+                style={[styles.nameInputEdit, { color: '#fff', borderBottomColor: 'rgba(255,255,255,0.5)' }]}
                 value={nameInput}
                 onChangeText={setNameInput}
                 autoFocus
-                onBlur={saveName}
-                onSubmitEditing={saveName}
+                onBlur={finishEditingName}
+                onSubmitEditing={finishEditingName}
                 selectionColor={Colors.accent}
               />
+              <TouchableOpacity onPress={finishEditingName} style={styles.saveNameBtn}>
+                <Ionicons name="checkmark-circle" size={26} color="#FFF" />
+              </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity onPress={() => setEditingName(true)} style={{ alignItems: 'center' }}>
-              <Text style={styles.profileName}>{profile_name}</Text>
+              <Text style={styles.profileName}>{tempName}</Text>
               <Text style={styles.profileSubtitle}>Ketuk untuk ubah nama</Text>
             </TouchableOpacity>
           )}
@@ -565,6 +679,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 20, borderRadius: BorderRadius.lg, padding: 24,
     alignItems: 'center', gap: 8, marginBottom: 24,
     overflow: 'hidden',
+    position: 'relative',
+  },
+  saveProfileBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    zIndex: 10,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   profileCircle1: {
     position: 'absolute', top: -30, right: -30,
@@ -579,16 +705,54 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   profileAvatar: {
-    width: 72, height: 72, borderRadius: 36,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)',
   },
+  avatarImage: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+  },
+  editAvatarBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    backgroundColor: Colors.primary,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFF',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
   profileAvatarText: { color: '#fff', fontSize: 28, fontWeight: '800' },
-  nameEdit: { width: '100%', alignItems: 'center' },
-  nameInput: {
-    fontSize: FontSize.xl, fontWeight: '700', textAlign: 'center',
-    borderBottomWidth: 1, paddingBottom: 4, width: '80%',
+  nameEditRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '80%',
+  },
+  nameInputEdit: {
+    flex: 1,
+    fontSize: FontSize.xl,
+    fontWeight: '700',
+    textAlign: 'center',
+    borderBottomWidth: 1,
+    paddingBottom: 4,
+  },
+  saveNameBtn: {
+    padding: 2,
   },
   profileName: { color: '#fff', fontSize: FontSize.xl, fontWeight: '700', textAlign: 'center' },
   profileSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.sm, textAlign: 'center', marginTop: 2 },

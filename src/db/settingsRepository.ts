@@ -76,6 +76,7 @@ export const settingsRepository = {
     return {
       dark_mode: all.dark_mode === 'true',
       profile_name: userSettings.profile_name || all.profile_name || 'Pengguna',
+      profile_image: (email ? all[`profile_image_${email}`] : '') || all.profile_image || '',
       pin_enabled: userSettings.pin_enabled ?? all.pin_enabled === 'true',
       pin_hash: userSettings.pin_hash ?? (all.pin_hash || ''),
       biometric_enabled: userSettings.biometric_enabled ?? all.biometric_enabled === 'true',
