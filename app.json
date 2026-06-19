@@ -11,10 +11,6 @@
       "supportsTablet": false
     },
     "android": {
-      "statusBar": {
-        "translucent": true,
-        "backgroundColor": "transparent"
-      },
       "adaptiveIcon": {
         "backgroundColor": "#1A6FE8",
         "foregroundImage": "./assets/android-icon-foreground.png"
@@ -63,7 +59,7 @@
         "expo-notifications",
         {
           "icon": "./assets/android-icon-monochrome.png",
-          "color": "#1A6FE8"
+          "color": "#ffffff"
         }
       ]
     ],
