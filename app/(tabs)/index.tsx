@@ -20,6 +20,7 @@ import { Colors, BorderRadius, FontSize, FontWeight, Shadow } from '../../src/co
 import { formatCurrency, formatDate, formatTime, hexToRgba } from '../../src/utils/helpers';
 import { Transaction, Wallet, TransactionType } from '../../src/types';
 import { router, useFocusEffect } from 'expo-router';
+import { useTranslation } from '../../src/hooks/useTranslation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -82,6 +83,7 @@ function BalanceCard({ totalBalance, income, expense }: {
   totalBalance: number; income: number; expense: number;
 }) {
   const [showBalance, setShowBalance] = useState(true);
+  const { t } = useTranslation();
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -109,7 +111,7 @@ function BalanceCard({ totalBalance, income, expense }: {
       </Animated.View>
 
       <View style={styles.balanceHeader}>
-        <Text style={styles.balanceLabelText}>Total Saldo</Text>
+        <Text style={styles.balanceLabelText}>{t.totalBalance}</Text>
         <TouchableOpacity onPress={() => setShowBalance(v => !v)} activeOpacity={0.7}>
           <Ionicons name={showBalance ? 'eye' : 'eye-off'} size={20} color="rgba(255,255,255,0.75)" />
         </TouchableOpacity>
@@ -127,7 +129,7 @@ function BalanceCard({ totalBalance, income, expense }: {
             <Ionicons name="arrow-down-circle" size={18} color={Colors.income} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.statLabel}>Pemasukan</Text>
+            <Text style={styles.statLabel}>{t.income}</Text>
             <Text style={styles.statValue} numberOfLines={1}>
               {showBalance ? formatCurrency(income) : '••••'}
             </Text>
@@ -139,7 +141,7 @@ function BalanceCard({ totalBalance, income, expense }: {
             <Ionicons name="arrow-up-circle" size={18} color={Colors.expense} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.statLabel}>Pengeluaran</Text>
+            <Text style={styles.statLabel}>{t.expense}</Text>
             <Text style={styles.statValue} numberOfLines={1}>
               {showBalance ? formatCurrency(expense) : '••••'}
             </Text>
@@ -174,6 +176,7 @@ function TransactionItem({ transaction, onPress }: {
   transaction: Transaction; onPress: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const isIncome = transaction.type === 'income';
   const catColor = transaction.category_color || Colors.primary;
 
@@ -187,7 +190,7 @@ function TransactionItem({ transaction, onPress }: {
       </View>
       <View style={styles.txnContent}>
         <Text style={[styles.txnCategory, { color: colors.text }]}>
-          {transaction.category_name || 'Tanpa Kategori'}
+          {transaction.category_name || t.uncategorized}
         </Text>
         <Text style={[styles.txnNote, { color: colors.textSecondary }]} numberOfLines={1}>
           {transaction.note || transaction.wallet_name || '—'}
@@ -224,6 +227,7 @@ function TransactionEditModal({
   wallets,
 }: TransactionEditModalProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { categories, loadCategories } = useCategoryStore();
 
   const [mode, setMode] = useState<TransactionType>('expense');
@@ -260,8 +264,8 @@ function TransactionEditModal({
 
   const handleSave = async () => {
     const amount = parseInt(amountStr.replace(/\D/g, ''), 10) || 0;
-    if (amount <= 0) { Alert.alert('Error', 'Nominal harus lebih dari 0'); return; }
-    if (!selectedWalletId) { Alert.alert('Error', 'Pilih dompet terlebih dahulu'); return; }
+    if (amount <= 0) { Alert.alert('Error', t.amountInvalid); return; }
+    if (!selectedWalletId) { Alert.alert('Error', t.selectWalletFirst); return; }
 
     const wallet = wallets.find(w => w.id === selectedWalletId);
     if (wallet && mode === 'expense') {
@@ -271,7 +275,7 @@ function TransactionEditModal({
         : wallet.balance;
 
       if (amount > available) {
-        Alert.alert('Saldo Kurang', 'Saldo dompet tidak mencukupi untuk melakukan pengeluaran ini.');
+        Alert.alert(t.insufficientBalance, t.insufficientBalanceMsg);
         return;
       }
     }
@@ -288,7 +292,7 @@ function TransactionEditModal({
       });
       onClose();
     } catch (e) {
-      Alert.alert('Error', 'Gagal menyimpan perubahan');
+      Alert.alert('Error', t.saveFailedMsg);
     } finally {
       setIsSaving(false);
     }
@@ -296,19 +300,19 @@ function TransactionEditModal({
 
   const handleDelete = () => {
     Alert.alert(
-      'Hapus Transaksi',
-      'Yakin ingin menghapus transaksi ini? Tindakan ini akan mengembalikan saldo dompet Anda.',
+      t.deleteTxn,
+      t.deleteTxnConfirm,
       [
-        { text: 'Batal', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Hapus',
+          text: t.delete,
           style: 'destructive',
           onPress: async () => {
             try {
               await onDelete(transaction.id, transaction.wallet_id, transaction.type, transaction.amount);
               onClose();
             } catch (e) {
-              Alert.alert('Error', 'Gagal menghapus transaksi');
+              Alert.alert('Error', t.deleteFailedMsg);
             }
           },
         },
@@ -328,7 +332,7 @@ function TransactionEditModal({
           <View style={styles.modalHandle} />
           
           <View style={styles.modalHeaderRow}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Detail Transaksi</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t.txnDetails}</Text>
             <TouchableOpacity onPress={handleDelete} style={styles.deleteHeaderBtn}>
               <Ionicons name="trash" size={22} color={Colors.expense} />
             </TouchableOpacity>
@@ -351,14 +355,14 @@ function TransactionEditModal({
                   onPress={() => { setMode(m); setSelectedCategoryId(null); }}
                 >
                   <Text style={[styles.modalModeText, { color: mode === m ? '#fff' : colors.textMuted }]}>
-                    {m === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+                    {m === 'income' ? t.income : t.expense}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             {/* Amount Input */}
-            <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>Nominal (Rp)</Text>
+            <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>{t.nominal} (Rp)</Text>
             <TextInput
               style={[styles.modalInput, { color: modeColor, backgroundColor: colors.input, borderColor: modeColor, fontWeight: '700', fontSize: 18 }]}
               keyboardType="numeric"
@@ -370,7 +374,7 @@ function TransactionEditModal({
             />
 
             {/* Wallet Selection */}
-            <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>Pilih Dompet</Text>
+            <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>{t.selectWallet}</Text>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false} 
@@ -396,7 +400,7 @@ function TransactionEditModal({
             </ScrollView>
 
             {/* Category Selection */}
-            <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>Pilih Kategori</Text>
+            <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>{t.selectCategory}</Text>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false} 
@@ -422,7 +426,7 @@ function TransactionEditModal({
             </ScrollView>
 
             {/* Date Selection */}
-            <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>Tanggal</Text>
+            <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>{t.date}</Text>
             <TouchableOpacity
               style={[styles.modalDateBtn, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
               onPress={() => setShowDatePicker(true)}
@@ -434,10 +438,10 @@ function TransactionEditModal({
             </TouchableOpacity>
 
             {/* Note Input */}
-            <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>Catatan</Text>
+            <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>{t.note}</Text>
             <TextInput
               style={[styles.modalInput, { color: colors.text, backgroundColor: colors.input, borderColor: colors.border }]}
-              placeholder="Catatan transaksi..."
+              placeholder={t.noNote}
               placeholderTextColor={colors.textMuted}
               value={note}
               onChangeText={setNote}
@@ -448,7 +452,7 @@ function TransactionEditModal({
           {/* Action Buttons */}
           <View style={styles.modalActionButtons}>
             <TouchableOpacity style={[styles.modalCancelBtn, { borderColor: colors.border }]} onPress={onClose}>
-              <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Batal</Text>
+              <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{t.cancel}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modalSaveBtn, { backgroundColor: Colors.primary }]}
@@ -456,7 +460,7 @@ function TransactionEditModal({
               disabled={isSaving}
             >
               <Text style={{ color: '#fff', fontWeight: '700' }}>
-                {isSaving ? 'Menyimpan...' : 'Simpan'}
+                {isSaving ? t.saving : t.save}
               </Text>
             </TouchableOpacity>
           </View>
@@ -494,6 +498,7 @@ function NotificationModal({
   onItemPress,
 }: NotificationModalProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -502,11 +507,11 @@ function NotificationModal({
           <View style={styles.modalHandle} />
           
           <View style={styles.modalHeaderRow}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Notifikasi</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t.profile === 'Profil' ? 'Notifikasi' : 'Notifications'}</Text>
             {notifications.some(n => !n.read) && (
               <TouchableOpacity onPress={onMarkAllRead}>
                 <Text style={{ color: Colors.primary, fontWeight: '600', fontSize: FontSize.sm }}>
-                  Tandai semua dibaca
+                  {t.profile === 'Profil' ? 'Tandai semua dibaca' : 'Mark all as read'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -521,7 +526,7 @@ function NotificationModal({
               <View style={styles.notifEmptyState}>
                 <Ionicons name="notifications-off-outline" size={48} color={colors.textMuted} />
                 <Text style={[styles.notifEmptyTitle, { color: colors.textSecondary }]}>
-                  Tidak ada notifikasi
+                  {t.profile === 'Profil' ? 'Tidak ada notifikasi' : 'No notifications'}
                 </Text>
               </View>
             ) : (
@@ -568,7 +573,7 @@ function NotificationModal({
           </ScrollView>
 
           <TouchableOpacity style={[styles.modalCancelBtn, { borderColor: colors.border, marginTop: 12 }]} onPress={onClose}>
-            <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Tutup</Text>
+            <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{t.profile === 'Profil' ? 'Tutup' : 'Close'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -579,6 +584,7 @@ function NotificationModal({
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { wallets, totalBalance, loadWallets } = useWalletStore();
   const { 
@@ -651,10 +657,10 @@ export default function Dashboard() {
 
   const getGreetingText = () => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 11) return 'Selamat Pagi';
-    if (hour >= 11 && hour < 15) return 'Selamat Siang';
-    if (hour >= 15 && hour < 18) return 'Selamat Sore';
-    return 'Selamat Malam';
+    if (hour >= 5 && hour < 11) return t.greeting_morning;
+    if (hour >= 11 && hour < 15) return t.greeting_afternoon;
+    if (hour >= 15 && hour < 18) return t.greeting_evening;
+    return t.greeting_night;
   };
 
   // Staggered dashboard entrance animations
@@ -797,9 +803,9 @@ export default function Dashboard() {
           ]}
         >
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Dompet</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t.myWallets}</Text>
             <TouchableOpacity onPress={() => router.push('/profile' as any)} activeOpacity={0.7}>
-              <Text style={[styles.sectionAction, { color: Colors.primary }]}>Kelola</Text>
+              <Text style={[styles.sectionAction, { color: Colors.primary }]}>{t.profile === 'Profil' ? 'Kelola' : 'Manage'}</Text>
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.walletScroll}>
@@ -815,7 +821,7 @@ export default function Dashboard() {
               onPress={() => router.push('/profile' as any)}
             >
               <Ionicons name="add" size={24} color={Colors.primary} />
-              <Text style={[styles.addWalletText, { color: Colors.primary }]}>Tambah</Text>
+              <Text style={[styles.addWalletText, { color: Colors.primary }]}>{t.profile === 'Profil' ? 'Tambah' : 'Add'}</Text>
             </ScalePressable>
           </ScrollView>
         </Animated.View>
@@ -835,7 +841,7 @@ export default function Dashboard() {
               <View style={[styles.quickActionIconCircle, { backgroundColor: hexToRgba('#8B5CF6', 0) }]}>
                 <Ionicons name="bar-chart" size={16} color="#8B5CF6" />
               </View>
-              <Text style={[styles.quickActionText, { color: colors.text }]}>Laporan</Text>
+              <Text style={[styles.quickActionText, { color: colors.text }]}>{t.reportsTitle}</Text>
             </ScalePressable>
             <ScalePressable
               style={[styles.quickAction, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
@@ -844,7 +850,7 @@ export default function Dashboard() {
               <View style={[styles.quickActionIconCircle, { backgroundColor: hexToRgba(Colors.primary, 0) }]}>
                 <Ionicons name="analytics" size={16} color={Colors.primary} />
               </View>
-              <Text style={[styles.quickActionText, { color: colors.text }]}>Analisis Usaha</Text>
+              <Text style={[styles.quickActionText, { color: colors.text }]}>{t.analyticsTitle}</Text>
             </ScalePressable>
           </View>
         </Animated.View>
@@ -870,11 +876,11 @@ export default function Dashboard() {
                   <Ionicons name="trophy" size={22} color="#fff" />
                 </View>
                 <View>
-                  <Text style={styles.goalsBannerTitle}>Target Tabungan</Text>
+                  <Text style={styles.goalsBannerTitle}>{t.savingGoalTitle}</Text>
                   <Text style={styles.goalsBannerSub}>
                     {goals.length === 0
-                      ? 'Buat target tabungan pertamamu'
-                      : `${goals.length} target aktif · ${formatCurrency(goals.reduce((s, g) => s + g.saved_amount, 0))} tersimpan`
+                      ? t.noGoalDesc
+                      : `${goals.length} ${t.profile === 'Profil' ? 'target aktif' : 'active goals'} · ${formatCurrency(goals.reduce((s, g) => s + g.saved_amount, 0))} ${t.profile === 'Profil' ? 'tersimpan' : 'saved'}`
                     }
                   </Text>
                 </View>
@@ -892,10 +898,10 @@ export default function Dashboard() {
           ]}
         >
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Transaksi Terbaru</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t.recentTxns}</Text>
             <TouchableOpacity onPress={() => setShowAll(s => !s)} activeOpacity={0.7}>
               <Text style={[styles.sectionAction, { color: Colors.primary }]}>
-                {showAll ? 'Sembunyikan' : 'Lihat semua'}
+                {showAll ? (t.profile === 'Profil' ? 'Sembunyikan' : 'Hide') : t.viewAll}
               </Text>
             </TouchableOpacity>
           </View>
@@ -903,9 +909,9 @@ export default function Dashboard() {
           {recentTransactions.length === 0 ? (
             <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
               <Ionicons name="receipt-outline" size={48} color={colors.textMuted} />
-              <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>Belum ada transaksi</Text>
+              <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>{t.noTxns}</Text>
               <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-                Mulai catat pemasukan atau pengeluaranmu
+                {t.profile === 'Profil' ? 'Mulai catat pemasukan atau pengeluaranmu' : 'Start recording your income or expenses'}
               </Text>
             </View>
           ) : (

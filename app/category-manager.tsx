@@ -11,6 +11,7 @@ import { Colors, BorderRadius, FontSize, Shadow } from '../src/constants/Colors'
 import { hexToRgba } from '../src/utils/helpers';
 import { Category } from '../src/types';
 import { router } from 'expo-router';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 const WALLET_COLORS = ['#1A6FE8', '#22C55E', '#EF4444', '#F5C842', '#8B5CF6', '#EC4899', '#F97316', '#14B8A6'];
 const CAT_ICONS = ['briefcase', 'restaurant', 'car', 'bag', 'receipt', 'medical', 'game-controller', 'sparkles', 'fast-food', 'school', 'laptop', 'gift', 'home', 'fitness', 'pricetag'];
@@ -24,6 +25,7 @@ function CategoryModal({
   initial?: Category; defaultType?: 'income' | 'expense' | 'both';
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [name, setName] = useState(initial?.name || '');
   const [icon, setIcon] = useState(initial?.icon || 'pricetag');
   const [color, setColor] = useState(initial?.color || Colors.primary);
@@ -39,7 +41,7 @@ function CategoryModal({
   }, [visible, initial, defaultType]);
 
   const handleSave = () => {
-    if (!name.trim()) { Alert.alert('Error', 'Nama kategori wajib diisi'); return; }
+    if (!name.trim()) { Alert.alert('Error', t.nameCategoryRequired); return; }
     onSave({ name: name.trim(), icon, color, type });
     onClose();
   };
@@ -50,34 +52,34 @@ function CategoryModal({
         <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
           <View style={styles.modalHandle} />
           <Text style={[styles.modalTitle, { color: colors.text }]}>
-            {initial ? 'Edit Kategori' : 'Tambah Kategori'}
+            {initial ? t.editCategory : t.addCategory}
           </Text>
 
           <TextInput
             style={[styles.input, { color: colors.text, backgroundColor: colors.input, borderColor: colors.inputBorder }]}
-            placeholder="Nama kategori"
+            placeholder={t.placeholderCategoryName}
             placeholderTextColor={colors.textMuted}
             value={name}
             onChangeText={setName}
           />
 
-          <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Tipe</Text>
+          <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>{t.type}</Text>
           <View style={styles.typeRow}>
-            {(['income', 'expense', 'both'] as const).map(t => (
+            {(['income', 'expense', 'both'] as const).map(typeOpt => (
               <TouchableOpacity
-                key={t}
-                style={[styles.typeBtn, { borderColor: type === t ? color : colors.border },
-                  type === t && { backgroundColor: hexToRgba(color, 0.15) }]}
-                onPress={() => setType(t)}
+                key={typeOpt}
+                style={[styles.typeBtn, { borderColor: type === typeOpt ? color : colors.border },
+                  type === typeOpt && { backgroundColor: hexToRgba(color, 0.15) }]}
+                onPress={() => setType(typeOpt)}
               >
-                <Text style={[styles.typeText, { color: type === t ? color : colors.textMuted }]}>
-                  {t === 'income' ? 'Pemasukan' : t === 'expense' ? 'Pengeluaran' : 'Keduanya'}
+                <Text style={[styles.typeText, { color: type === typeOpt ? color : colors.textMuted }]}>
+                  {typeOpt === 'income' ? t.income : typeOpt === 'expense' ? t.expense : t.both}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Ikon</Text>
+          <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>{t.icon}</Text>
           <View style={styles.iconGrid}>
             {CAT_ICONS.map(ic => (
               <TouchableOpacity
@@ -91,7 +93,7 @@ function CategoryModal({
             ))}
           </View>
 
-          <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Warna</Text>
+          <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>{t.color}</Text>
           <View style={styles.colorRow}>
             {WALLET_COLORS.map(c => (
               <TouchableOpacity
@@ -104,10 +106,10 @@ function CategoryModal({
 
           <View style={styles.modalButtons}>
             <TouchableOpacity style={[styles.cancelBtn, { borderColor: colors.border }]} onPress={onClose}>
-              <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Batal</Text>
+              <Text style={[styles.cancelText, { color: colors.textSecondary }]}>{t.cancel}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.saveBtn, { backgroundColor: Colors.primary }]} onPress={handleSave}>
-              <Text style={styles.saveText}>Simpan</Text>
+              <Text style={styles.saveText}>{t.save}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -119,6 +121,7 @@ function CategoryModal({
 // ── Category Manager Screen ──────────────────────────────────────────────────
 export default function CategoryManagerScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { categories, addCategory, updateCategory, deleteCategory } = useCategoryStore();
 
@@ -127,10 +130,10 @@ export default function CategoryManagerScreen() {
   const [editingCat, setEditingCat] = useState<Category | undefined>();
 
   const handleDeleteCat = (cat: Category) => {
-    if (cat.is_default) { Alert.alert('Info', 'Kategori bawaan tidak dapat dihapus'); return; }
-    Alert.alert('Hapus Kategori', `Yakin hapus "${cat.name}"?`, [
-      { text: 'Batal', style: 'cancel' },
-      { text: 'Hapus', style: 'destructive', onPress: () => deleteCategory(cat.id) },
+    if (cat.is_default) { Alert.alert('Info', t.defaultCategoryInfo); return; }
+    Alert.alert(t.deleteCategoryTitle, t.deleteCategoryConfirm.replace('{name}', cat.name), [
+      { text: t.cancel, style: 'cancel' },
+      { text: t.delete, style: 'destructive', onPress: () => deleteCategory(cat.id) },
     ]);
   };
 
@@ -142,7 +145,7 @@ export default function CategoryManagerScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Kelola Kategori</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t.manageCategoryTitle}</Text>
       </View>
 
       <View style={[styles.modeToggleContainer, { backgroundColor: colors.surfaceSecondary, marginTop: 12 }]}>
@@ -171,7 +174,7 @@ export default function CategoryManagerScreen() {
                 { color: isActive ? colors.text : colors.textMuted },
                 isActive && { fontWeight: '700' },
               ]}>
-                {tab === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+                {tab === 'income' ? t.income : t.expense}
               </Text>
             </TouchableOpacity>
           );
@@ -187,7 +190,7 @@ export default function CategoryManagerScreen() {
               </View>
               <Text style={[styles.catRowName, { color: colors.text }]} numberOfLines={1}>{cat.name}</Text>
               {cat.is_default && (
-                <Text style={{ fontSize: 11, color: colors.textMuted, marginRight: 8 }}>Bawaan</Text>
+                <Text style={{ fontSize: 11, color: colors.textMuted, marginRight: 8 }}>{t.defaultText}</Text>
               )}
               {!cat.is_default && (
                 <>
@@ -208,7 +211,7 @@ export default function CategoryManagerScreen() {
           onPress={() => { setEditingCat(undefined); setShowCatModal(true); }}
         >
           <Ionicons name="add" size={18} color={Colors.primary} />
-          <Text style={[styles.addItemText, { color: Colors.primary }]}>Tambah Kategori</Text>
+          <Text style={[styles.addItemText, { color: Colors.primary }]}>{t.addCategory}</Text>
         </TouchableOpacity>
       </ScrollView>
 

@@ -55,6 +55,7 @@ export interface Settings {
   session_active: boolean;
   login_email: string;
   login_password_hash: string;
+  language: 'id' | 'en';
 }
 
 export interface DailySummary {

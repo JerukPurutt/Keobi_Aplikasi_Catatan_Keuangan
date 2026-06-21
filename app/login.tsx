@@ -1,9 +1,18 @@
-// Login Screen for Keobi - Redesigned to match mockup with premium animations
+// Login Screen - Keobi Premium Redesign
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput,
-  Alert, Dimensions, KeyboardAvoidingView, Platform, ScrollView,
-  Animated, TouchableWithoutFeedback
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Animated,
+  StatusBar,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -14,110 +23,47 @@ import { useWalletStore } from '../src/store/useWalletStore';
 import { useCategoryStore } from '../src/store/useCategoryStore';
 import { useTransactionStore } from '../src/store/useTransactionStore';
 import { useGoalStore } from '../src/store/useGoalStore';
-import { Colors, BorderRadius, FontSize, Shadow } from '../src/constants/Colors';
 import { verifyPassword } from '../src/utils/helpers';
 import { getDatabase } from '../src/db/database';
 import * as Haptics from 'expo-haptics';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const { login_email, setSetting } = useSettingsStore();
-  
+  const { login_email, setSetting, loadSettings } = useSettingsStore();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  
-  // Input focus states for premium visual feedback
+  const [loading, setLoading] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
-  // Background blobs animations
-  const blob1Anim = useRef(new Animated.Value(0)).current;
-  const blob2Anim = useRef(new Animated.Value(0)).current;
-
-  // Staggered entrance animations
-  const fadeHeader = useRef(new Animated.Value(0)).current;
-  const fadeEmail = useRef(new Animated.Value(0)).current;
-  const fadePassword = useRef(new Animated.Value(0)).current;
-  const fadeRow = useRef(new Animated.Value(0)).current;
-  const fadeSubmit = useRef(new Animated.Value(0)).current;
-  const fadeDivider = useRef(new Animated.Value(0)).current;
-  const fadeSocial = useRef(new Animated.Value(0)).current;
-  const fadeFooter = useRef(new Animated.Value(0)).current;
-
-  const slideHeader = useRef(new Animated.Value(35)).current;
-  const slideEmail = useRef(new Animated.Value(35)).current;
-  const slidePassword = useRef(new Animated.Value(35)).current;
-  const slideRow = useRef(new Animated.Value(35)).current;
-  const slideSubmit = useRef(new Animated.Value(35)).current;
-  const slideDivider = useRef(new Animated.Value(35)).current;
-  const slideSocial = useRef(new Animated.Value(35)).current;
-  const slideFooter = useRef(new Animated.Value(35)).current;
-
-  // Button micro-interaction scales
-  const submitScale = useRef(new Animated.Value(1)).current;
-  const googleScale = useRef(new Animated.Value(1)).current;
-  const facebookScale = useRef(new Animated.Value(1)).current;
+  // Entrance animation — runs once only
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(24)).current;
 
   useEffect(() => {
-    if (login_email) {
-      setEmail(login_email);
-    }
-
-    // Start background ambient floating animations
-    Animated.loop(
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(blob1Anim, { toValue: 1, duration: 10000, useNativeDriver: true }),
-          Animated.timing(blob1Anim, { toValue: 0, duration: 10000, useNativeDriver: true }),
-        ]),
-        Animated.sequence([
-          Animated.timing(blob2Anim, { toValue: 1, duration: 12000, useNativeDriver: true }),
-          Animated.timing(blob2Anim, { toValue: 0, duration: 12000, useNativeDriver: true }),
-        ]),
-      ])
-    ).start();
-
-    // Start staggered entrance animations
-    const createStagger = (fade: Animated.Value, slide: Animated.Value) => {
-      return Animated.parallel([
-        Animated.timing(fade, { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.spring(slide, { toValue: 0, friction: 8, tension: 35, useNativeDriver: true }),
-      ]);
-    };
-
-    Animated.stagger(80, [
-      createStagger(fadeHeader, slideHeader),
-      createStagger(fadeEmail, slideEmail),
-      createStagger(fadePassword, slidePassword),
-      createStagger(fadeRow, slideRow),
-      createStagger(fadeSubmit, slideSubmit),
-      createStagger(fadeDivider, slideDivider),
-      createStagger(fadeSocial, slideSocial),
-      createStagger(fadeFooter, slideFooter),
+    loadSettings();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 9,
+        tension: 40,
+        useNativeDriver: true,
+      }),
     ]).start();
+  }, []);
+
+  useEffect(() => {
+    if (login_email) setEmail(login_email);
   }, [login_email]);
 
-  const handlePressIn = (scaleVar: Animated.Value) => {
-    Animated.spring(scaleVar, {
-      toValue: 0.95,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = (scaleVar: Animated.Value) => {
-    Animated.spring(scaleVar, {
-      toValue: 1,
-      friction: 4,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handleSubmit = async () => {
+  const handleLogin = async () => {
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
 
@@ -130,9 +76,15 @@ export default function LoginScreen() {
       return;
     }
 
+    setLoading(true);
     try {
       const db = await getDatabase();
-      const user = await db.getFirstAsync<{ email: string; password_hash: string; pin_enabled: number; pin_hash: string }>(
+      const user = await db.getFirstAsync<{
+        email: string;
+        password_hash: string;
+        pin_enabled: number;
+        pin_hash: string;
+      }>(
         'SELECT email, password_hash, pin_enabled, pin_hash FROM users WHERE LOWER(email) = LOWER(?)',
         [trimmedEmail]
       );
@@ -145,11 +97,9 @@ export default function LoginScreen() {
 
       const isValid = await verifyPassword(trimmedPassword, user.password_hash);
       if (isValid) {
-        // Set user credentials in settings table
         await setSetting('login_email', user.email);
         await setSetting('session_active', true);
 
-        // Reload all stores in memory to load the logged-in user's wallets, categories, transactions, and settings
         const freshSettings = useSettingsStore.getState();
         await Promise.all([
           freshSettings.loadSettings(),
@@ -160,16 +110,12 @@ export default function LoginScreen() {
           useGoalStore.getState().loadGoals(user.email),
         ]);
 
-        // Re-read onboarded after reload
         const updatedSettings = useSettingsStore.getState();
-
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-        // If the user has a PIN enabled and set up, go to PIN page; otherwise, check onboarding
         if (user.pin_enabled === 1 && user.pin_hash) {
           router.replace('/pin' as any);
         } else if (!updatedSettings.onboarded) {
-          // New user — show onboarding first
           router.replace('/onboarding' as any);
         } else {
           router.replace('/(tabs)' as any);
@@ -181,494 +127,427 @@ export default function LoginScreen() {
     } catch (e) {
       console.error('Authentication error:', e);
       Alert.alert('Error', 'Terjadi kesalahan sistem saat mencoba autentikasi');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Interpolations for background circles
-  const blob1TranslateX = blob1Anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 40],
-  });
-  const blob1TranslateY = blob1Anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -30],
-  });
-  const blob1Scale = blob1Anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.2],
-  });
-
-  const blob2TranslateX = blob2Anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -50],
-  });
-  const blob2TranslateY = blob2Anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 40],
-  });
-  const blob2Scale = blob2Anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.25],
-  });
-
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView 
-        contentContainerStyle={[
-          styles.scrollContainer,
-          { paddingTop: Math.max(insets.top, 24) }
-        ]} 
-        keyboardShouldPersistTaps="handled"
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor="#0A1628" />
+
+      {/* Top gradient accent */}
+      <LinearGradient
+        colors={['#1A6FE8', '#0A1628']}
+        style={styles.topAccent}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Background decorations - Glowing Animated Gradients */}
-        <Animated.View 
-          style={[
-            styles.bgCircle1,
-            { 
-              transform: [
-                { translateX: blob1TranslateX }, 
-                { translateY: blob1TranslateY },
-                { scale: blob1Scale }
-              ] 
-            }
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: Math.max(insets.top + 24, 48) },
           ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <LinearGradient
-            colors={['rgba(26, 111, 232, 0.22)', 'rgba(26, 111, 232, 0.02)']}
-            style={styles.gradientBlob}
-          />
-        </Animated.View>
-
-        <Animated.View 
-          style={[
-            styles.bgCircle2,
-            { 
-              transform: [
-                { translateX: blob2TranslateX }, 
-                { translateY: blob2TranslateY },
-                { scale: blob2Scale }
-              ] 
-            }
-          ]}
-        >
-          <LinearGradient
-            colors={['rgba(245, 200, 66, 0.12)', 'rgba(245, 200, 66, 0.01)']}
-            style={styles.gradientBlob}
-          />
-        </Animated.View>
-
-        <View style={styles.content}>
-          {/* Header left-aligned */}
-          <Animated.View 
+          <Animated.View
             style={[
-              styles.headerContainer,
-              { opacity: fadeHeader, transform: [{ translateY: slideHeader }] }
+              styles.inner,
+              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
             ]}
           >
-            <Text style={styles.appName}>keobi</Text>
-            <Text style={styles.title}>Login to your{'\n'}account</Text>
-          </Animated.View>
-
-          {/* Form Card */}
-          <View style={styles.card}>
-            {/* Email/Username field */}
-            <Animated.View 
-              style={[
-                styles.inputGroup,
-                { opacity: fadeEmail, transform: [{ translateY: slideEmail }] }
-              ]}
-            >
-              <Text style={styles.label}>Your number & email address</Text>
-              <View 
-                style={[
-                  styles.inputWrapper,
-                  emailFocused && styles.inputWrapperFocused
-                ]}
-              >
-                <TextInput
-                  style={styles.input}
-                  placeholder="uiuxshamim68@gmail.com"
-                  placeholderTextColor="rgba(255,255,255,0.25)"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => setEmailFocused(false)}
+            {/* Logo & Heading */}
+            <View style={styles.header}>
+              <View style={styles.logoContainer}>
+                <Image
+                  source={require('../assets/icon.png')}
+                  style={styles.logoImage}
+                  resizeMode="contain"
                 />
               </View>
-            </Animated.View>
+              <Text style={styles.appName}>keobi</Text>
+              <Text style={styles.tagline}>Kelola keuangan pribadi Anda</Text>
+            </View>
 
-            {/* Password field */}
-            <Animated.View 
-              style={[
-                styles.inputGroup,
-                { opacity: fadePassword, transform: [{ translateY: slidePassword }] }
-              ]}
-            >
-              <Text style={styles.label}>Enter your password</Text>
-              <View 
-                style={[
-                  styles.inputWrapper,
-                  passwordFocused && styles.inputWrapperFocused
-                ]}
-              >
-                <TextInput
-                  style={styles.input}
-                  placeholder="••••••••••••••••"
-                  placeholderTextColor="rgba(255,255,255,0.25)"
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                  autoCapitalize="none"
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
-                />
-                <TouchableOpacity 
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeBtn}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons 
-                    name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                    size={20} 
-                    color="rgba(255,255,255,0.4)" 
+            {/* Card Form */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Masuk</Text>
+              <Text style={styles.cardSubtitle}>Selamat datang kembali </Text>
+
+              {/* Email Field */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Email / Username</Text>
+                <View style={[styles.inputRow, emailFocused && styles.inputRowFocused]}>
+                  <Ionicons
+                    name="person-outline"
+                    size={18}
+                    color={emailFocused ? '#1A6FE8' : 'rgba(255,255,255,0.35)'}
+                    style={styles.inputIcon}
                   />
-                </TouchableOpacity>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Masukkan email atau username"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    autoComplete="off"
+                    importantForAutofill="no"
+                    keyboardType="default"
+                    underlineColorAndroid="transparent"
+                    returnKeyType="next"
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                  />
+                </View>
               </View>
-            </Animated.View>
 
-            {/* Checkbox and Forgot Password Row */}
-            <Animated.View 
-              style={[
-                styles.row,
-                { opacity: fadeRow, transform: [{ translateY: slideRow }] }
-              ]}
-            >
-              <TouchableOpacity 
-                style={styles.checkboxRow} 
-                onPress={() => setRememberMe(!rememberMe)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                  {rememberMe && <Ionicons name="checkmark" size={10} color="#fff" />}
-                </View>
-                <Text style={styles.checkboxLabel}>Remember me</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                onPress={() => Alert.alert('Info', 'Fitur reset sandi untuk akun offline dapat dilakukan dengan register akun baru.')}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.forgotText}>Forget password</Text>
-              </TouchableOpacity>
-            </Animated.View>
-
-            {/* Login Button with Spring scale interaction */}
-            <Animated.View 
-              style={[
-                { opacity: fadeSubmit, transform: [{ translateY: slideSubmit }, { scale: submitScale }] }
-              ]}
-            >
-              <TouchableWithoutFeedback
-                onPressIn={() => handlePressIn(submitScale)}
-                onPressOut={() => handlePressOut(submitScale)}
-                onPress={handleSubmit}
-              >
-                <View style={styles.submitBtnContainer}>
-                  <LinearGradient
-                    colors={['#1A6FE8', '#0D4FA8']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.submitBtnGradient}
+              {/* Password Field */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Kata Sandi</Text>
+                <View style={[styles.inputRow, passwordFocused && styles.inputRowFocused]}>
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={18}
+                    color={passwordFocused ? '#1A6FE8' : 'rgba(255,255,255,0.35)'}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Masukkan kata sandi"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    autoComplete="off"
+                    importantForAutofill="no"
+                    keyboardType="default"
+                    underlineColorAndroid="transparent"
+                    returnKeyType="done"
+                    onSubmitEditing={handleLogin}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeBtn}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Text style={styles.submitBtnText}>Log in</Text>
-                  </LinearGradient>
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={19}
+                      color="rgba(255,255,255,0.4)"
+                    />
+                  </TouchableOpacity>
                 </View>
-              </TouchableWithoutFeedback>
-            </Animated.View>
+              </View>
 
-            {/* Divider "Or" */}
-            <Animated.View 
-              style={[
-                styles.dividerContainer,
-                { opacity: fadeDivider, transform: [{ translateY: slideDivider }] }
-              ]}
-            >
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>Or</Text>
-              <View style={styles.dividerLine} />
-            </Animated.View>
-
-            {/* Social Buttons with Spring scale interactions */}
-            <Animated.View 
-              style={{ opacity: fadeSocial, transform: [{ translateY: slideSocial }] }}
-            >
-              <TouchableWithoutFeedback
-                onPressIn={() => handlePressIn(googleScale)}
-                onPressOut={() => handlePressOut(googleScale)}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  Alert.alert('Info', 'Opsi Google Sign In sedang disimulasikan.');
-                }}
+              {/* Forgot password */}
+              <TouchableOpacity
+                style={styles.forgotRow}
+                activeOpacity={0.7}
+                onPress={() =>
+                  Alert.alert(
+                    'Reset Sandi',
+                    'Untuk akun offline, buat akun baru jika lupa sandi.'
+                  )
+                }
               >
-                <Animated.View style={[styles.socialBtn, { transform: [{ scale: googleScale }] }]}>
-                  <Ionicons name="logo-google" size={18} color="#EA4335" style={styles.socialIcon} />
-                  <Text style={styles.socialBtnText}>Sign up with google</Text>
-                </Animated.View>
-              </TouchableWithoutFeedback>
+                <Text style={styles.forgotText}>Lupa kata sandi?</Text>
+              </TouchableOpacity>
 
-              <TouchableWithoutFeedback
-                onPressIn={() => handlePressIn(facebookScale)}
-                onPressOut={() => handlePressOut(facebookScale)}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  Alert.alert('Info', 'Opsi Facebook Sign In sedang disimulasikan.');
-                }}
+              {/* Login Button */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleLogin}
+                disabled={loading}
+                style={styles.primaryBtnWrapper}
               >
-                <Animated.View style={[styles.socialBtn, { transform: [{ scale: facebookScale }] }]}>
-                  <Ionicons name="logo-facebook" size={20} color="#1877F2" style={styles.socialIcon} />
-                  <Text style={styles.socialBtnText}>Sign up with facebook</Text>
-                </Animated.View>
-              </TouchableWithoutFeedback>
-            </Animated.View>
-          </View>
+                <LinearGradient
+                  colors={['#1A6FE8', '#0D4FA8']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.primaryBtn}
+                >
+                  {loading ? (
+                    <Text style={styles.primaryBtnText}>Memproses...</Text>
+                  ) : (
+                    <>
+                      <Text style={styles.primaryBtnText}>Masuk</Text>
+                      <Ionicons name="arrow-forward" size={18} color="#fff" />
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
 
-          {/* Switch to Register link at bottom */}
-          <Animated.View 
-            style={[
-              styles.footer,
-              { opacity: fadeFooter, transform: [{ translateY: slideFooter }] }
-            ]}
-          >
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity 
-              onPress={() => router.replace('/register' as any)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.footerLink}>Create an account</Text>
-            </TouchableOpacity>
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>atau</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Social Buttons */}
+              <TouchableOpacity
+                style={styles.socialBtn}
+                activeOpacity={0.8}
+                onPress={() => Alert.alert('Info', 'Google Sign In sedang disimulasikan.')}
+              >
+                <Ionicons name="logo-google" size={18} color="#EA4335" />
+                <Text style={styles.socialBtnText}>Masuk dengan Google</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.socialBtn}
+                activeOpacity={0.8}
+                onPress={() => Alert.alert('Info', 'Facebook Sign In sedang disimulasikan.')}
+              >
+                <Ionicons name="logo-facebook" size={20} color="#1877F2" />
+                <Text style={styles.socialBtnText}>Masuk dengan Facebook</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Footer */}
+            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+              <Text style={styles.footerText}>Belum punya akun? </Text>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => router.replace('/register' as any)}
+              >
+                <Text style={styles.footerLink}>Daftar sekarang</Text>
+              </TouchableOpacity>
+            </View>
           </Animated.View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: Colors.dark.background,
+    backgroundColor: '#0A1628',
   },
-  scrollContainer: {
+  flex: {
+    flex: 1,
+  },
+  topAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 260,
+    opacity: 0.55,
+  },
+  scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
   },
-  bgCircle1: {
-    position: 'absolute', top: -100, right: -100,
-    width: 320, height: 320, borderRadius: 160,
-    overflow: 'hidden',
-  },
-  bgCircle2: {
-    position: 'absolute', bottom: -80, left: -80,
-    width: 280, height: 280, borderRadius: 140,
-    overflow: 'hidden',
-  },
-  gradientBlob: {
+  inner: {
     flex: 1,
   },
-  content: {
-    width: '100%',
-    paddingHorizontal: 28,
+
+  // Header
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
   },
-  headerContainer: {
-    width: '100%',
-    alignItems: 'flex-start',
-    marginBottom: 28,
+  logoContainer: {
+    marginBottom: 12,
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#1A6FE8',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 12,
+    backgroundColor: '#fff',
+  },
+  logoImage: {
+    width: 76,
+    height: 76,
+    borderRadius: 28,
   },
   appName: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: Colors.primary,
-    letterSpacing: -1,
-    marginBottom: 10,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: -0.5,
+    marginBottom: 4,
   },
-  title: {
-    fontSize: 34,
+  tagline: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.45)',
+    letterSpacing: 0.2,
+  },
+
+  // Card
+  card: {
+    backgroundColor: '#111827',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+    marginBottom: 24,
+  },
+  cardTitle: {
+    fontSize: 22,
     fontWeight: '700',
     color: '#fff',
-    lineHeight: 40,
-    letterSpacing: -0.5,
+    marginBottom: 4,
+    textAlign: 'center',
   },
-  card: {
-    width: '100%',
-    backgroundColor: 'transparent',
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
+  cardSubtitle: {
     fontSize: 13,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: 10,
+    color: 'rgba(255,255,255,0.45)',
+    marginBottom: 24,
+    textAlign: 'center',
   },
-  inputWrapper: {
+
+  // Fields
+  fieldGroup: {
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 14,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.08)',
-    paddingHorizontal: 16,
-    height: 54,
-    // Glassmorphic shadow style
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
+    height: 52,
+    paddingHorizontal: 14,
   },
-  inputWrapperFocused: {
-    borderColor: Colors.primary,
-    backgroundColor: 'rgba(26, 111, 232, 0.04)',
-    // Inner glowing shadow simulation
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 2,
+  inputRowFocused: {
+    borderColor: '#1A6FE8',
+    backgroundColor: 'rgba(26,111,232,0.06)',
   },
-  input: {
+  inputIcon: {
+    marginRight: 10,
+  },
+  textInput: {
     flex: 1,
-    height: '100%',
     color: '#fff',
-    fontSize: FontSize.md,
+    fontSize: 15,
     paddingVertical: 0,
-    textAlignVertical: 'center',
+    height: '100%',
   },
   eyeBtn: {
-    padding: 8,
+    paddingLeft: 8,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  checkboxChecked: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary,
-  },
-  checkboxLabel: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 13,
+
+  // Forgot
+  forgotRow: {
+    alignSelf: 'flex-end',
+    marginBottom: 20,
+    marginTop: -4,
   },
   forgotText: {
-    color: Colors.accent,
     fontSize: 13,
+    color: '#F5C842',
     fontWeight: '600',
   },
-  submitBtnContainer: {
-    width: '100%',
-    height: 54,
-    borderRadius: 27,
+
+  // Primary Button
+  primaryBtnWrapper: {
+    borderRadius: 14,
     overflow: 'hidden',
-    marginBottom: 24,
-    ...Shadow.md,
+    marginBottom: 20,
+    shadowColor: '#1A6FE8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  submitBtnGradient: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  submitBtnText: {
-    color: '#fff',
-    fontSize: FontSize.md,
-    fontWeight: '700',
-  },
-  dividerContainer: {
+  primaryBtn: {
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    marginBottom: 24,
+    gap: 8,
+  },
+  primaryBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  // Divider
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 10,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.07)',
   },
   dividerText: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 13,
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 12,
   },
+
+  // Social
   socialBtn: {
     flexDirection: 'row',
-    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    height: 48,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     backgroundColor: 'rgba(255,255,255,0.03)',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 14,
-    // Glassmorphic shadow style
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  socialIcon: {
-    marginRight: 12,
-    width: 24,
-    textAlign: 'center',
+    marginBottom: 10,
   },
   socialBtnText: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#fff',
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
     fontWeight: '600',
-    marginRight: 24, // balance the icon width for center alignment
   },
+
+  // Footer
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
-    paddingBottom: 24,
   },
   footerText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 13,
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 14,
   },
   footerLink: {
-    color: Colors.accent,
-    fontSize: 13,
+    color: '#1A6FE8',
+    fontSize: 14,
     fontWeight: '700',
   },
 });
-
-
-
-
-
-
-

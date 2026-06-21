@@ -16,6 +16,7 @@ import { Colors, BorderRadius, FontSize, Shadow } from '../../src/constants/Colo
 import { formatCurrency, formatDate, hexToRgba, generateId } from '../../src/utils/helpers';
 import { Category, Wallet } from '../../src/types';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../src/hooks/useTranslation';
 
 type TransactionMode = 'expense' | 'income';
 
@@ -30,12 +31,13 @@ function CategoryModal({
   onSelect: (cat: Category) => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} transparent animationType="slide">
       <TouchableOpacity style={styles.modalOverlay} onPress={onClose} activeOpacity={1}>
         <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
           <View style={styles.modalHandle} />
-          <Text style={[styles.modalTitle, { color: colors.text }]}>Pilih Kategori</Text>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>{t.selectCategory}</Text>
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.categoryGrid}>
               {categories.map(cat => (
@@ -74,12 +76,13 @@ function WalletModal({
   onSelect: (wallet: Wallet) => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} transparent animationType="slide">
       <TouchableOpacity style={styles.modalOverlay} onPress={onClose} activeOpacity={1}>
         <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
           <View style={styles.modalHandle} />
-          <Text style={[styles.modalTitle, { color: colors.text }]}>Pilih Dompet</Text>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>{t.selectWallet}</Text>
           {wallets.map(wallet => (
             <TouchableOpacity
               key={wallet.id}
@@ -114,6 +117,7 @@ function WalletModal({
 // ── Main Screen ──────────────────────────────────────────────────────────────
 export default function TransactionScreen() {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { wallets } = useWalletStore();
   const { getCategoriesByType } = useCategoryStore();
@@ -147,11 +151,11 @@ export default function TransactionScreen() {
 
   const handleSubmit = async () => {
     Keyboard.dismiss();
-    if (amount <= 0) { Alert.alert('Error', 'Nominal harus lebih dari 0'); return; }
-    if (!selectedWallet) { Alert.alert('Error', 'Pilih dompet terlebih dahulu'); return; }
+    if (amount <= 0) { Alert.alert('Error', t.amountInvalid); return; }
+    if (!selectedWallet) { Alert.alert('Error', t.selectWalletFirst); return; }
     
     if (mode === 'expense' && amount > selectedWallet.balance) {
-      Alert.alert('Saldo Kurang', 'Saldo dompet tidak mencukupi untuk melakukan pengeluaran ini.');
+      Alert.alert(t.insufficientBalance, t.insufficientBalanceMsg);
       return;
     }
 
@@ -171,9 +175,9 @@ export default function TransactionScreen() {
       setNote('');
       setSelectedCategory(null);
       setSelectedDate(new Date());
-      Alert.alert('Berhasil', `${mode === 'income' ? 'Pemasukan' : 'Pengeluaran'} berhasil dicatat!`);
+      Alert.alert('Berhasil', t.txnSuccessMsg);
     } catch (e: any) {
-      Alert.alert('Error', 'Gagal menyimpan transaksi: ' + (e?.message || String(e)));
+      Alert.alert('Error', t.saveFailedMsg + ': ' + (e?.message || String(e)));
     } finally {
       setIsSubmitting(false);
     }
@@ -189,7 +193,7 @@ export default function TransactionScreen() {
     >
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Tambah Transaksi</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t.addTxn}</Text>
       </View>
 
       {/* Mode Toggle */}
@@ -219,7 +223,7 @@ export default function TransactionScreen() {
                 { color: isActive ? colors.text : colors.textMuted },
                 isActive && { fontWeight: '700' },
               ]}>
-                {m === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+                {m === 'income' ? t.income : t.expense}
               </Text>
             </TouchableOpacity>
           );
@@ -229,7 +233,7 @@ export default function TransactionScreen() {
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Amount Section */}
         <View style={styles.amountSection}>
-          <Text style={[styles.amountHeader, { color: colors.textMuted }]}>NOMINAL TRANSAKSI</Text>
+          <Text style={[styles.amountHeader, { color: colors.textMuted }]}>{t.txnAmountTitle}</Text>
           <Text style={[styles.amountText, { color: colors.text }]}>
             Rp {amount.toLocaleString('id-ID')}
           </Text>
@@ -257,7 +261,7 @@ export default function TransactionScreen() {
             onPress={() => setShowWalletModal(true)}
           >
             <Ionicons name="wallet" size={20} color={Colors.primary} />
-            <Text style={[styles.formLabel, { color: colors.text }]}>Dompet</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t.wallet}</Text>
             <View style={styles.formValue}>
               {selectedWallet ? (
                 <>
@@ -265,7 +269,7 @@ export default function TransactionScreen() {
                   <Text style={[styles.formValueText, { color: colors.text }]}>{selectedWallet.name}</Text>
                 </>
               ) : (
-                <Text style={[styles.formPlaceholder, { color: colors.textMuted }]}>Pilih dompet</Text>
+                <Text style={[styles.formPlaceholder, { color: colors.textMuted }]}>{t.selectWallet}</Text>
               )}
               <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
             </View>
@@ -277,7 +281,7 @@ export default function TransactionScreen() {
             onPress={() => setShowCategoryModal(true)}
           >
             <Ionicons name="pricetag" size={20} color={Colors.primary} />
-            <Text style={[styles.formLabel, { color: colors.text }]}>Kategori</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t.category}</Text>
             <View style={styles.formValue}>
               {selectedCategory ? (
                 <>
@@ -285,7 +289,7 @@ export default function TransactionScreen() {
                   <Text style={[styles.formValueText, { color: colors.text }]}>{selectedCategory.name}</Text>
                 </>
               ) : (
-                <Text style={[styles.formPlaceholder, { color: colors.textMuted }]}>Pilih kategori</Text>
+                <Text style={[styles.formPlaceholder, { color: colors.textMuted }]}>{t.selectCategory}</Text>
               )}
               <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
             </View>
@@ -297,10 +301,10 @@ export default function TransactionScreen() {
             onPress={() => setShowDatePicker(true)}
           >
             <Ionicons name="calendar" size={20} color={Colors.primary} />
-            <Text style={[styles.formLabel, { color: colors.text }]}>Tanggal</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t.date}</Text>
             <View style={styles.formValue}>
               <Text style={[styles.formValueText, { color: colors.text }]}>
-                {formatDate(selectedDate.getTime(), 'dd MMMM yyyy')}
+                {formatDate(selectedDate.getTime(), t.profile === 'Profil' ? 'dd MMMM yyyy' : 'dd MMMM yyyy')}
               </Text>
               <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
             </View>
@@ -309,10 +313,10 @@ export default function TransactionScreen() {
           {/* Note */}
           <View style={[styles.formRow, { borderBottomWidth: 0 }]}>
             <Ionicons name="create" size={20} color={Colors.primary} />
-            <Text style={[styles.formLabel, { color: colors.text }]}>Catatan</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t.note}</Text>
             <TextInput
               style={[styles.noteInput, { color: colors.text }]}
-              placeholder="Tambah catatan..."
+              placeholder={t.noNote}
               placeholderTextColor={colors.textMuted}
               value={note}
               onChangeText={setNote}
@@ -330,7 +334,7 @@ export default function TransactionScreen() {
         >
           <Ionicons name="checkmark-circle" size={22} color="#fff" />
           <Text style={styles.submitText}>
-            {isSubmitting ? 'Menyimpan...' : `Simpan ${isIncome ? 'Pemasukan' : 'Pengeluaran'}`}
+            {isSubmitting ? t.saving : (isIncome ? t.saveIncome : t.saveExpense)}
           </Text>
         </TouchableOpacity>
         <View style={{ height: insets.bottom + 32 }} />

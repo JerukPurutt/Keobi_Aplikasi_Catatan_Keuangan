@@ -23,6 +23,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   session_active: false,
   login_email: '',
   login_password_hash: '',
+  language: 'id' as 'id' | 'en',
   isLoaded: false,
 
   loadSettings: async () => {

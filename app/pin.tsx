@@ -13,6 +13,7 @@ import { verifyPin, hashPin } from '../src/utils/helpers';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PIN_LENGTH = 6;
@@ -79,6 +80,7 @@ function KeypadButton({ value, onPress, disabled, biometricEnabled, isCreating }
 
 export default function PinScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { pin_hash, biometric_enabled, profile_name, setSetting } = useSettingsStore();
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -117,8 +119,8 @@ export default function PinScreen() {
       if (!hasHardware || !isEnrolled) return;
 
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Masuk ke Keobi',
-        cancelLabel: 'Gunakan PIN',
+        promptMessage: t.profile === 'Profil' ? 'Masuk ke Keobi' : 'Login to Keobi',
+        cancelLabel: t.profile === 'Profil' ? 'Gunakan PIN' : 'Use PIN',
         disableDeviceFallback: false,
       });
 
@@ -177,13 +179,13 @@ export default function PinScreen() {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               onAuthenticated();
             } catch (e) {
-              setError('Gagal menyimpan PIN. Coba lagi.');
+              setError(t.profile === 'Profil' ? 'Gagal menyimpan PIN. Coba lagi.' : 'Failed to save PIN. Try again.');
               setPin('');
               setTempPin('');
               setCreateStep('enter');
             }
           } else {
-            setError('PIN tidak cocok! Silakan ulangi.');
+            setError(t.profile === 'Profil' ? 'PIN tidak cocok! Silakan ulangi.' : 'PIN mismatch! Please try again.');
             shake();
             setPin('');
             setTempPin('');
@@ -197,19 +199,23 @@ export default function PinScreen() {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           onAuthenticated();
         } else {
-          setError('PIN salah!');
+          setError(t.profile === 'Profil' ? 'PIN salah!' : 'Wrong PIN!');
           shake();
           // Delay Alert popup slightly to let red dots shake finish
           setTimeout(async () => {
-            Alert.alert('PIN Salah', 'PIN yang Anda masukkan salah. Sesi berakhir, silakan masuk kembali dengan password.', [
-              {
-                text: 'OK',
-                onPress: async () => {
-                  await setSetting('session_active', false);
-                  router.replace('/login' as any);
+            Alert.alert(
+              t.profile === 'Profil' ? 'PIN Salah' : 'Wrong PIN',
+              t.profile === 'Profil' ? 'PIN yang Anda masukkan salah. Sesi berakhir, silakan masuk kembali dengan password.' : 'The PIN you entered is incorrect. Session ended, please login again with your password.',
+              [
+                {
+                  text: 'OK',
+                  onPress: async () => {
+                    await setSetting('session_active', false);
+                    router.replace('/login' as any);
+                  }
                 }
-              }
-            ]);
+              ]
+            );
             setPin('');
             setError('');
           }, 350);
@@ -254,12 +260,12 @@ export default function PinScreen() {
         {/* Logo */}
         <Text style={styles.appName}>Keobi</Text>
         <Text style={styles.greeting}>
-          {isCreating ? 'Buat PIN Pengaman Baru' : `Selamat datang, ${profile_name} `}
+          {isCreating ? (t.profile === 'Profil' ? 'Buat PIN Pengaman Baru' : 'Create New Security PIN') : (t.profile === 'Profil' ? `Selamat datang, ${profile_name} ` : `Welcome back, ${profile_name} `)}
         </Text>
         <Text style={styles.subtitle}>
           {isCreating 
-            ? (createStep === 'enter' ? 'Masukkan 6 digit PIN baru Anda' : 'Masukkan kembali PIN Anda untuk konfirmasi')
-            : 'Masukkan PIN untuk melanjutkan'}
+            ? (createStep === 'enter' ? (t.profile === 'Profil' ? 'Masukkan 6 digit PIN baru Anda' : 'Enter your new 6-digit PIN') : (t.profile === 'Profil' ? 'Masukkan kembali PIN Anda untuk konfirmasi' : 'Re-enter your PIN to confirm'))
+            : (t.profile === 'Profil' ? 'Masukkan PIN untuk melanjutkan' : 'Enter PIN to continue')}
         </Text>
 
         {/* PIN Dots */}
@@ -325,7 +331,7 @@ export default function PinScreen() {
           activeOpacity={0.7}
         >
           <Ionicons name="arrow-back" size={16} color={Colors.accent} style={{ marginRight: 6 }} />
-          <Text style={styles.backToLoginText}>Kembali ke Login</Text>
+          <Text style={styles.backToLoginText}>{t.profile === 'Profil' ? 'Kembali ke Login' : 'Back to Login'}</Text>
         </TouchableOpacity>
       </View>
     </LinearGradient>

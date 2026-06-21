@@ -11,6 +11,7 @@ import { Colors, BorderRadius, FontSize, Shadow } from '../src/constants/Colors'
 import { formatCurrency, hexToRgba } from '../src/utils/helpers';
 import { Wallet } from '../src/types';
 import { router } from 'expo-router';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 const WALLET_ICONS = ['wallet', 'card', 'cash', 'business', 'briefcase', 'storefront', 'phone-portrait', 'logo-bitcoin'];
 const WALLET_COLORS = ['#1A6FE8', '#22C55E', '#EF4444', '#F5C842', '#8B5CF6', '#EC4899', '#F97316', '#14B8A6'];
@@ -24,6 +25,7 @@ function WalletModal({
   initial?: Wallet;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [name, setName] = useState(initial?.name || '');
   const [balance, setBalance] = useState(String(initial?.balance || ''));
   const [icon, setIcon] = useState(initial?.icon || 'wallet');
@@ -39,7 +41,7 @@ function WalletModal({
   }, [visible, initial]);
 
   const handleSave = () => {
-    if (!name.trim()) { Alert.alert('Error', 'Nama dompet wajib diisi'); return; }
+    if (!name.trim()) { Alert.alert('Error', t.nameWalletRequired); return; }
     onSave({ name: name.trim(), icon, color, balance: parseFloat(balance) || 0 });
     onClose();
   };
@@ -50,19 +52,19 @@ function WalletModal({
         <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
           <View style={styles.modalHandle} />
           <Text style={[styles.modalTitle, { color: colors.text }]}>
-            {initial ? 'Edit Dompet' : 'Tambah Dompet'}
+            {initial ? t.editWallet : t.addWallet}
           </Text>
 
           <TextInput
             style={[styles.input, { color: colors.text, backgroundColor: colors.input, borderColor: colors.inputBorder }]}
-            placeholder="Nama dompet"
+            placeholder={t.placeholderWalletName}
             placeholderTextColor={colors.textMuted}
             value={name}
             onChangeText={setName}
           />
           <TextInput
             style={[styles.input, { color: colors.text, backgroundColor: colors.input, borderColor: colors.inputBorder }]}
-            placeholder="Saldo awal (Rp)"
+            placeholder={t.placeholderInitialBalance}
             placeholderTextColor={colors.textMuted}
             value={balance}
             onChangeText={setBalance}
@@ -96,10 +98,10 @@ function WalletModal({
 
           <View style={styles.modalButtons}>
             <TouchableOpacity style={[styles.cancelBtn, { borderColor: colors.border }]} onPress={onClose}>
-              <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Batal</Text>
+              <Text style={[styles.cancelText, { color: colors.textSecondary }]}>{t.cancel}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.saveBtn, { backgroundColor: Colors.primary }]} onPress={handleSave}>
-              <Text style={styles.saveText}>Simpan</Text>
+              <Text style={styles.saveText}>{t.save}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -111,6 +113,7 @@ function WalletModal({
 // ── Wallet Manager Screen ────────────────────────────────────────────────────
 export default function WalletManagerScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { wallets, addWallet, updateWallet, deleteWallet } = useWalletStore();
 
@@ -119,11 +122,11 @@ export default function WalletManagerScreen() {
 
   const handleDeleteWallet = (wallet: Wallet) => {
     Alert.alert(
-      'Hapus Dompet',
-      `Yakin hapus "${wallet.name}"? Semua transaksi di dompet ini juga akan terhapus.`,
+      t.deleteWalletTitle,
+      t.deleteWalletConfirm.replace('{name}', wallet.name),
       [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Hapus', style: 'destructive', onPress: () => deleteWallet(wallet.id) },
+        { text: t.cancel, style: 'cancel' },
+        { text: t.delete, style: 'destructive', onPress: () => deleteWallet(wallet.id) },
       ]
     );
   };
@@ -134,7 +137,7 @@ export default function WalletManagerScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Kelola Dompet</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t.manageWalletTitle}</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
@@ -165,7 +168,7 @@ export default function WalletManagerScreen() {
           onPress={() => { setEditingWallet(undefined); setShowWalletModal(true); }}
         >
           <Ionicons name="add" size={18} color={Colors.primary} />
-          <Text style={[styles.addItemText, { color: Colors.primary }]}>Tambah Dompet</Text>
+          <Text style={[styles.addItemText, { color: Colors.primary }]}>{t.addWallet}</Text>
         </TouchableOpacity>
       </ScrollView>
 

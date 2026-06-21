@@ -1,5 +1,5 @@
 // Profile & Settings screen for Keobi
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Modal, Alert, Switch, Dimensions, Animated, Image
@@ -19,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 import { exportToCSV, exportToHTML, backupDatabase, restoreDatabase } from '../../src/utils/export';
 import { resetDatabaseForNewUser, deleteUserAccount } from '../../src/db/database';
 import { router } from 'expo-router';
+import { useTranslation } from '../../src/hooks/useTranslation';
 
 const CAT_ICONS = ['briefcase', 'restaurant', 'car', 'bag', 'receipt', 'medical', 'game-controller', 'sparkles', 'fast-food', 'school', 'laptop', 'gift', 'home', 'fitness', 'pricetag'];
 
@@ -79,12 +80,23 @@ function PinModal({ visible, onClose }: { visible: boolean; onClose: () => void 
 
   const hasPinSet = !!pin_hash;
 
+  // Animasi scale pop dari tengah
+  const scaleAnim = useRef(new Animated.Value(0.82)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
   React.useEffect(() => {
     if (visible) {
       setStep(hasPinSet ? 'current' : 'new');
       setPinInput('');
       setNewPin('');
       setError(false);
+      // Reset & jalankan animasi masuk
+      scaleAnim.setValue(0.82);
+      opacityAnim.setValue(0);
+      Animated.parallel([
+        Animated.timing(opacityAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, friction: 7, tension: 55, useNativeDriver: true }),
+      ]).start();
     }
   }, [visible, hasPinSet]);
 
@@ -167,11 +179,15 @@ function PinModal({ visible, onClose }: { visible: boolean; onClose: () => void 
   ];
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalSheet, { backgroundColor: colors.surface, paddingBottom: 36 }]}>
-          <View style={styles.modalHandle} />
-          
+    <Modal visible={visible} transparent animationType="fade">
+      <Animated.View style={[styles.modalOverlay, { opacity: opacityAnim }]}>
+        <Animated.View
+          style={[
+            styles.modalSheet,
+            { backgroundColor: colors.surface, paddingBottom: 36 },
+            { transform: [{ scale: scaleAnim }] },
+          ]}
+        >
           <View style={{ alignItems: 'center', marginVertical: 8 }}>
             <View style={[styles.lockIconContainer, { backgroundColor: hexToRgba(Colors.primary, 0.1) }]}>
               <Ionicons name="lock-closed" size={24} color={Colors.primary} />
@@ -237,8 +253,8 @@ function PinModal({ visible, onClose }: { visible: boolean; onClose: () => void 
               </View>
             ))}
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 }
@@ -256,6 +272,7 @@ const isValidUri = (uri: string | null | undefined): boolean => {
 export default function ProfileScreen() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { profile_name, profile_image, dark_mode, pin_enabled, biometric_enabled, setSetting, toggleDarkMode, loadSettings, login_email } = useSettingsStore();
   const { loadWallets } = useWalletStore();
   const { loadCategories } = useCategoryStore();
@@ -403,11 +420,11 @@ export default function ProfileScreen() {
       }
 
       if (changed) {
-        Alert.alert('Berhasil', 'Profil Anda berhasil diperbarui.');
+        Alert.alert(t.saveSuccess, t.saveProfile);
       }
     } catch (error) {
       console.error('Error saving profile changes:', error);
-      Alert.alert('Gagal', 'Terjadi kesalahan saat menyimpan perubahan profil.');
+      Alert.alert(t.saveFail, t.saveFailMsg);
     }
   };
 
@@ -421,7 +438,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {renderHeader('Profil')}
+      {renderHeader(t.profile)}
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Profile Card */}
@@ -480,17 +497,17 @@ export default function ProfileScreen() {
           ) : (
             <TouchableOpacity onPress={() => setEditingName(true)} style={{ alignItems: 'center' }}>
               <Text style={styles.profileName}>{tempName}</Text>
-              <Text style={styles.profileSubtitle}>Ketuk untuk ubah nama</Text>
+              <Text style={styles.profileSubtitle}>{t.tapToChangeName}</Text>
             </TouchableOpacity>
           )}
         </LinearGradient>
 
         {/* Preferences */}
-        <SectionHeader title="Preferensi" />
+        <SectionHeader title={t.preferences} />
         <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
           <SettingsRow
             icon="moon"
-            label="Mode Gelap"
+            label={t.darkMode}
             rightEl={
               <Switch
                 value={dark_mode}
@@ -502,13 +519,13 @@ export default function ProfileScreen() {
           />
           <SettingsRow
             icon="lock-closed"
-            label="PIN Keamanan"
-            subtitle={pin_enabled ? 'Aktif' : 'Nonaktif'}
+            label={t.pinSecurity}
+            subtitle={pin_enabled ? t.pinActive : t.pinInactive}
             onPress={() => setShowPinModal(true)}
           />
           <SettingsRow
             icon="finger-print"
-            label="Sidik Jari"
+            label={t.fingerprint}
             hideDivider={true}
             rightEl={
               <Switch
@@ -522,72 +539,72 @@ export default function ProfileScreen() {
         </View>
 
         {/* Manage Data Settings */}
-        <SectionHeader title="Kelola Data Keuangan" />
+        <SectionHeader title={t.manageData} />
         <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
           <SettingsRow
             icon="wallet"
-            label="Kelola Dompet"
-            subtitle="Atur rekening, kas, dan dompet keuangan"
+            label={t.manageWallet}
+            subtitle={t.manageWalletSub}
             onPress={() => router.push('/wallet-manager' as any)}
           />
           <SettingsRow
             icon="pricetags"
-            label="Kelola Kategori"
-            subtitle="Atur kategori pemasukan & pengeluaran"
+            label={t.manageCategory}
+            subtitle={t.manageCategorySub}
             hideDivider={true}
             onPress={() => router.push('/category-manager' as any)}
           />
         </View>
 
         {/* Backup & Restore */}
-        <SectionHeader title="Ekspor & Cadangkan Data" />
+        <SectionHeader title={t.exportSection} />
         <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
           <SettingsRow
             icon="document-text"
-            label="Ekspor Laporan CSV"
-            subtitle="Ekspor riwayat transaksi ke file CSV"
+            label={t.exportCSV}
+            subtitle={t.exportCSVSub}
             onPress={handleExportCSV}
           />
           <SettingsRow
             icon="code-working"
-            label="Ekspor Laporan HTML"
-            subtitle="Ekspor laporan siap print"
+            label={t.exportHTML}
+            subtitle={t.exportHTMLSub}
             onPress={handleExportHTML}
           />
           <SettingsRow
             icon="cloud-upload"
-            label="Cadangkan Data (Backup JSON)"
-            subtitle="Simpan data ke file JSON"
+            label={t.backup}
+            subtitle={t.backupSub}
             onPress={handleBackup}
           />
           <SettingsRow
             icon="cloud-download"
-            label="Puluhkan Data (Restore JSON)"
-            subtitle="Restore data dari file backup"
+            label={t.restore}
+            subtitle={t.restoreSub}
             hideDivider={true}
             onPress={handleRestore}
           />
         </View>
 
         {/* About */}
-        <SectionHeader title="Tentang Aplikasi" />
+        <SectionHeader title={t.about} />
         <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
-          <SettingsRow icon="information-circle" label="Versi Keobi" value="1.0.0" hideDivider={true} />
+          <SettingsRow icon="information-circle" label={t.version} value="1.0.0" hideDivider={true} />
         </View>
 
         {/* Danger Zone */}
-        <SectionHeader title="Zona Berbahaya" />
+        <SectionHeader title={t.dangerZone} />
         <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
           <SettingsRow
             icon="log-out"
-            label="Keluar (Log Out)"
+            label={t.logout}
             labelColor={Colors.expense}
-            subtitle="Keluar dan akhiri sesi login akun"
+            subtitle={t.logoutSub}
             onPress={() => {
-              Alert.alert('Keluar', 'Apakah Anda yakin ingin keluar dari akun?', [
-                { text: 'Batal', style: 'cancel' },
+              Alert.alert(t.logoutTitle, t.logoutMsg, [
+                { text: t.cancel, style: 'cancel' },
                 {
-                  text: 'Keluar',
+                  text: t.logout,
                   style: 'destructive',
                   onPress: async () => {
                     await setSetting('session_active', false);
@@ -635,10 +652,10 @@ export default function ProfileScreen() {
                                   loadTransactions(true),
                                   loadMonthSummary(),
                                 ]);
-                                Alert.alert('Akun Dihapus', 'Semua data akun Anda berhasil dibersihkan.');
+                                Alert.alert(t.deleteAccountSuccess, t.deleteAccountSuccessMsg);
                                 router.replace('/login' as any);
                               } catch (e: any) {
-                                Alert.alert('Gagal Hapus Akun', e.message || 'Terjadi kesalahan');
+                                Alert.alert(t.deleteFailTitle, e.message || t.processFailed);
                               }
                             }
                           }
@@ -776,8 +793,19 @@ const styles = StyleSheet.create({
   settingsSubtitle: { fontSize: 12, marginTop: 1 },
   settingsValue: { fontSize: FontSize.sm },
   // Modals
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '90%' },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 24,
+  },
+  modalSheet: {
+    width: '100%',
+    borderRadius: 24,
+    padding: 24,
+    maxHeight: '90%',
+  },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#ccc', alignSelf: 'center', marginBottom: 16 },
   modalTitle: { fontSize: FontSize.xl, fontWeight: '700', marginBottom: 16 },
   modalButtons: { flexDirection: 'row', gap: 12, marginTop: 4 },

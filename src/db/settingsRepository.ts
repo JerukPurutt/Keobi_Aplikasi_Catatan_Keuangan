@@ -86,6 +86,7 @@ export const settingsRepository = {
       session_active: all.session_active === 'true',
       login_email: email,
       login_password_hash: userSettings.login_password_hash || all.login_password_hash || '',
+      language: (all.language === 'en' ? 'en' : 'id') as 'id' | 'en',
     };
   },
 };

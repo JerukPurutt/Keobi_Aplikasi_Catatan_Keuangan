@@ -1,8 +1,8 @@
 // Goals screen — Target Tabungan Keobi
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Modal, Platform, StatusBar, KeyboardAvoidingView,
+  TextInput, Modal, Platform, StatusBar, KeyboardAvoidingView, Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ import { useTheme } from '../src/hooks/useTheme';
 import { Colors, BorderRadius, FontSize, Shadow } from '../src/constants/Colors';
 import { formatCurrency, formatDate, hexToRgba, generateId } from '../src/utils/helpers';
 import { SavingGoal } from '../src/types';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const GOAL_ICONS = [
@@ -29,12 +30,12 @@ const GOAL_COLORS = [
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function daysLeft(deadline: number | null): string {
+function daysLeft(deadline: number | null, t: any): string {
   if (!deadline) return '';
   const diff = Math.ceil((deadline - Date.now()) / (1000 * 60 * 60 * 24));
-  if (diff < 0) return 'Lewat tenggat';
-  if (diff === 0) return 'Hari ini!';
-  return `${diff} hari lagi`;
+  if (diff < 0) return t.deadlinePassed;
+  if (diff === 0) return t.today;
+  return t.daysLeft.replace('{days}', String(diff));
 }
 
 // ── Goal Card ─────────────────────────────────────────────────────────────────
@@ -48,68 +49,92 @@ function GoalCard({
   onDelete: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const progress = goal.target_amount > 0
     ? Math.min(goal.saved_amount / goal.target_amount, 1)
     : 0;
   const pct = Math.round(progress * 100);
   const done = progress >= 1;
 
+  // Animasi muncul dari tengah (scale + fade)
+  const scaleAnim = useRef(new Animated.Value(0.86)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 280,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 7,
+        tension: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   return (
-    <TouchableOpacity
-      style={[styles.goalCard, { backgroundColor: colors.surface }]}
-      onPress={onPress}
-      activeOpacity={0.85}
-    >
-      {/* Top row */}
-      <View style={styles.goalCardTop}>
-        <View style={[styles.goalIconBg, { backgroundColor: hexToRgba(goal.color, 0.15) }]}>
-          <Ionicons name={(goal.icon as any) || 'trophy'} size={22} color={goal.color} />
+    <Animated.View style={{ opacity: opacityAnim, transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        style={[styles.goalCard, { backgroundColor: colors.surface }]}
+        onPress={onPress}
+        activeOpacity={0.85}
+      >
+        {/* Top row */}
+        <View style={styles.goalCardTop}>
+          <View style={[styles.goalIconBg, { backgroundColor: hexToRgba(goal.color, 0.15) }]}>
+            <Ionicons name={(goal.icon as any) || 'trophy'} size={22} color={goal.color} />
+          </View>
+          <View style={styles.goalCardMeta}>
+            <Text style={[styles.goalTitle, { color: colors.text }]} numberOfLines={1}>
+              {goal.title}
+            </Text>
+            {goal.deadline ? (
+              <Text style={[styles.goalDeadline, { color: done ? Colors.income : colors.textMuted }]}>
+                {done ? t.targetReached : `⏰ ${daysLeft(goal.deadline, t)} · ${formatDate(goal.deadline)}`}
+              </Text>
+            ) : (
+              <Text style={[styles.goalDeadline, { color: done ? Colors.income : colors.textMuted }]}>
+                {done ? t.targetReached : t.noDeadline}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity onPress={onDelete} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
         </View>
-        <View style={styles.goalCardMeta}>
-          <Text style={[styles.goalTitle, { color: colors.text }]} numberOfLines={1}>
-            {goal.title}
+
+        {/* Progress bar */}
+        <View style={[styles.progressTrack, { backgroundColor: hexToRgba(goal.color, 0.12) }]}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${pct}%` as any, backgroundColor: done ? Colors.income : goal.color },
+            ]}
+          />
+        </View>
+
+        {/* Amounts */}
+        <View style={styles.goalAmounts}>
+          <Text style={[styles.savedAmt, { color: done ? Colors.income : goal.color }]}>
+            {formatCurrency(goal.saved_amount)}
           </Text>
-          {goal.deadline ? (
-            <Text style={[styles.goalDeadline, { color: done ? Colors.income : colors.textMuted }]}>
-              {done ? '🎉 Tercapai!' : `⏰ ${daysLeft(goal.deadline)} · ${formatDate(goal.deadline)}`}
-            </Text>
-          ) : (
-            <Text style={[styles.goalDeadline, { color: done ? Colors.income : colors.textMuted }]}>
-              {done ? '🎉 Tercapai!' : 'Tanpa tenggat'}
-            </Text>
-          )}
+          <Text style={[styles.targetAmt, { color: colors.textMuted }]}>
+            {(t.profile === 'Profil' ? 'dari ' : 'of ') + formatCurrency(goal.target_amount)} · {pct}%
+          </Text>
         </View>
-        <TouchableOpacity onPress={onDelete} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Progress bar */}
-      <View style={[styles.progressTrack, { backgroundColor: hexToRgba(goal.color, 0.12) }]}>
-        <View
-          style={[
-            styles.progressFill,
-            { width: `${pct}%` as any, backgroundColor: done ? Colors.income : goal.color },
-          ]}
-        />
-      </View>
-
-      {/* Amounts */}
-      <View style={styles.goalAmounts}>
-        <Text style={[styles.savedAmt, { color: done ? Colors.income : goal.color }]}>
-          {formatCurrency(goal.saved_amount)}
-        </Text>
-        <Text style={[styles.targetAmt, { color: colors.textMuted }]}>
-          dari {formatCurrency(goal.target_amount)} · {pct}%
-        </Text>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
 // ── Main Screen ───────────────────────────────────────────────────────────────
 export default function GoalsScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { login_email } = useSettingsStore();
   const { goals, isLoading, loadGoals, createGoal, deleteGoal, addSavings, withdrawSavings } = useGoalStore();
   const { wallets } = useWalletStore();
@@ -145,9 +170,9 @@ export default function GoalsScreen() {
   };
 
   const handleCreate = useCallback(async () => {
-    if (!formTitle.trim()) { setFormError('Judul wajib diisi'); return; }
+    if (!formTitle.trim()) { setFormError(t.titleRequired); return; }
     const target = parseFloat(formTarget.replace(/\D/g, ''));
-    if (!target || target <= 0) { setFormError('Target harus lebih dari 0'); return; }
+    if (!target || target <= 0) { setFormError(t.targetRequired); return; }
 
     setFormLoading(true);
     try {
@@ -166,7 +191,7 @@ export default function GoalsScreen() {
       setShowCreateModal(false);
       resetCreateForm();
     } catch {
-      setFormError('Gagal membuat target');
+      setFormError(t.saveGoalFailed);
     } finally {
       setFormLoading(false);
     }
@@ -184,8 +209,8 @@ export default function GoalsScreen() {
   const handleAction = useCallback(async () => {
     if (!selectedGoal) return;
     const amount = parseFloat(actionAmount.replace(/\D/g, ''));
-    if (!amount || amount <= 0) { setActionError('Nominal harus lebih dari 0'); return; }
-    if (!actionWalletId) { setActionError('Pilih dompet'); return; }
+    if (!amount || amount <= 0) { setActionError(t.amountInvalid); return; }
+    if (!actionWalletId) { setActionError(t.selectWalletFirst); return; }
 
     setActionLoading(true);
     try {
@@ -196,14 +221,14 @@ export default function GoalsScreen() {
       if (!ok) {
         setActionError(
           actionType === 'add'
-            ? 'Saldo dompet tidak cukup'
-            : 'Tabungan yang tersimpan tidak cukup'
+            ? t.insufficientWalletBalance
+            : t.insufficientGoalBalance
         );
       } else {
         setShowActionModal(false);
       }
     } catch {
-      setActionError('Terjadi kesalahan');
+      setActionError(t.processFailed);
     } finally {
       setActionLoading(false);
     }
@@ -212,11 +237,11 @@ export default function GoalsScreen() {
   const handleDelete = (goal: SavingGoal) => {
     // Using inline confirm since Alert is monkeypatched
     (require('react-native').Alert as any).alert(
-      'Hapus Target',
-      `Hapus target "${goal.title}"? Tabungan yang tersimpan (${formatCurrency(goal.saved_amount)}) TIDAK dikembalikan ke dompet.`,
+      t.deleteGoalTitle,
+      t.deleteGoalConfirm.replace('{title}', goal.title).replace('{amount}', formatCurrency(goal.saved_amount)),
       [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Hapus', style: 'destructive', onPress: () => deleteGoal(goal.id) },
+        { text: t.cancel, style: 'cancel' },
+        { text: t.delete, style: 'destructive', onPress: () => deleteGoal(goal.id) },
       ]
     );
   };
@@ -238,7 +263,7 @@ export default function GoalsScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Target Tabungan</Text>
+          <Text style={styles.headerTitle}>{t.savingGoalTitle}</Text>
           <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.addBtn}>
             <Ionicons name="add" size={24} color="#fff" />
           </TouchableOpacity>
@@ -247,17 +272,17 @@ export default function GoalsScreen() {
         {/* Summary */}
         <View style={styles.headerSummary}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total Tersimpan</Text>
+            <Text style={styles.summaryLabel}>{t.totalSaved}</Text>
             <Text style={styles.summaryValue}>{formatCurrency(totalSaved)}</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Total Target</Text>
+            <Text style={styles.summaryLabel}>{t.totalTarget}</Text>
             <Text style={styles.summaryValue}>{formatCurrency(totalTarget)}</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Target Aktif</Text>
+            <Text style={styles.summaryLabel}>{t.activeTarget}</Text>
             <Text style={styles.summaryValue}>{goals.length}</Text>
           </View>
         </View>
@@ -271,15 +296,15 @@ export default function GoalsScreen() {
         {goals.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="trophy-outline" size={64} color={colors.textMuted} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>Belum Ada Target</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t.noGoalTitle}</Text>
             <Text style={[styles.emptyDesc, { color: colors.textMuted }]}>
-              Tap tombol + untuk membuat target tabungan pertamamu
+              {t.noGoalDesc}
             </Text>
             <TouchableOpacity
               style={[styles.emptyBtn, { backgroundColor: Colors.primary }]}
               onPress={() => setShowCreateModal(true)}
             >
-              <Text style={styles.emptyBtnText}>Buat Target Sekarang</Text>
+              <Text style={styles.emptyBtnText}>{t.createGoalBtn}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -295,7 +320,7 @@ export default function GoalsScreen() {
       </ScrollView>
 
       {/* Action Modal (Add / Withdraw) */}
-      <Modal visible={showActionModal} transparent animationType="slide">
+      <Modal visible={showActionModal} transparent animationType="fade">
         <TouchableOpacity
           style={styles.overlay}
           activeOpacity={1}
@@ -343,7 +368,7 @@ export default function GoalsScreen() {
                             styles.actionTabText,
                             { color: actionType === type ? '#fff' : colors.textMuted },
                           ]}>
-                            {type === 'add' ? 'Tambah Tabungan' : 'Tarik Tabungan'}
+                            {type === 'add' ? t.addSavings : t.withdrawSavings}
                           </Text>
                         </TouchableOpacity>
                       ))}
@@ -351,7 +376,7 @@ export default function GoalsScreen() {
 
                     {/* Wallet Picker */}
                     <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>
-                      {actionType === 'add' ? 'Ambil dari Dompet' : 'Kembalikan ke Dompet'}
+                      {actionType === 'add' ? t.sourceWallet : t.destWallet}
                     </Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
                       <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 4 }}>
@@ -375,7 +400,7 @@ export default function GoalsScreen() {
                     </ScrollView>
 
                     {/* Amount input */}
-                    <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Nominal</Text>
+                    <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{t.nominal}</Text>
                     <View style={[styles.amountInput, { backgroundColor: colors.background, borderColor: colors.border }]}>
                       <Text style={[styles.amountPrefix, { color: colors.textMuted }]}>Rp</Text>
                       <TextInput
@@ -402,7 +427,7 @@ export default function GoalsScreen() {
                       disabled={actionLoading}
                     >
                       <Text style={styles.submitBtnText}>
-                        {actionLoading ? 'Memproses...' : actionType === 'add' ? 'Tambah Tabungan' : 'Tarik Tabungan'}
+                        {actionLoading ? t.processing : (actionType === 'add' ? t.addSavings : t.withdrawSavings)}
                       </Text>
                     </TouchableOpacity>
                   </>
@@ -414,7 +439,7 @@ export default function GoalsScreen() {
       </Modal>
 
       {/* Create Goal Modal */}
-      <Modal visible={showCreateModal} transparent animationType="slide">
+      <Modal visible={showCreateModal} transparent animationType="fade">
         <TouchableOpacity
           style={styles.overlay}
           activeOpacity={1}
@@ -427,14 +452,14 @@ export default function GoalsScreen() {
             <TouchableOpacity activeOpacity={1}>
               <View style={[styles.sheet, styles.sheetTall, { backgroundColor: colors.surface }]}>
                 <View style={styles.sheetHandle} />
-                <Text style={[styles.sheetTitle, { color: colors.text }]}>Target Baru</Text>
+                <Text style={[styles.sheetTitle, { color: colors.text }]}>{t.newTarget}</Text>
 
                 {/* Title */}
-                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Nama Target</Text>
+                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{t.formTitleLabel}</Text>
                 <View style={[styles.inputBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
                   <TextInput
                     style={[styles.inputText, { color: colors.text }]}
-                    placeholder="Contoh: Beli Laptop, Liburan Bali..."
+                    placeholder={t.formTitlePlaceholder}
                     placeholderTextColor={colors.textMuted}
                     value={formTitle}
                     onChangeText={setFormTitle}
@@ -442,7 +467,7 @@ export default function GoalsScreen() {
                 </View>
 
                 {/* Target Amount */}
-                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Target Nominal</Text>
+                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{t.formTargetLabel}</Text>
                 <View style={[styles.amountInput, { backgroundColor: colors.background, borderColor: colors.border }]}>
                   <Text style={[styles.amountPrefix, { color: colors.textMuted }]}>Rp</Text>
                   <TextInput
@@ -456,14 +481,14 @@ export default function GoalsScreen() {
                 </View>
 
                 {/* Deadline */}
-                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Tenggat Waktu (opsional)</Text>
+                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{t.formDeadlineLabel}</Text>
                 <TouchableOpacity
                   style={[styles.inputBox, { backgroundColor: colors.background, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8 }]}
                   onPress={() => setShowDatePicker(true)}
                 >
                   <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
                   <Text style={{ color: formDeadline ? colors.text : colors.textMuted, flex: 1 }}>
-                    {formDeadline ? formatDate(formDeadline.getTime()) : 'Pilih tanggal (opsional)'}
+                    {formDeadline ? formatDate(formDeadline.getTime()) : t.formDeadlinePlaceholder}
                   </Text>
                   {formDeadline && (
                     <TouchableOpacity onPress={() => setFormDeadline(null)}>
@@ -483,7 +508,7 @@ export default function GoalsScreen() {
                 )}
 
                 {/* Icon picker */}
-                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Ikon</Text>
+                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{t.icon}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
                   <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 4 }}>
                     {GOAL_ICONS.map(ic => (
@@ -503,7 +528,7 @@ export default function GoalsScreen() {
                 </ScrollView>
 
                 {/* Color picker */}
-                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Warna</Text>
+                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{t.color}</Text>
                 <View style={styles.colorRow}>
                   {GOAL_COLORS.map(c => (
                     <TouchableOpacity
@@ -521,7 +546,7 @@ export default function GoalsScreen() {
                   onPress={handleCreate}
                   disabled={formLoading}
                 >
-                  <Text style={styles.submitBtnText}>{formLoading ? 'Menyimpan...' : 'Buat Target'}</Text>
+                  <Text style={styles.submitBtnText}>{formLoading ? t.saving : t.createGoalText}</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>

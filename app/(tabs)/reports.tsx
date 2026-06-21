@@ -13,6 +13,7 @@ import { formatCurrency, getDateRangeForPeriod, formatDateShort, hexToRgba } fro
 import { transactionRepository } from '../../src/db/transactionRepository';
 import { eachDayOfInterval, eachWeekOfInterval, startOfWeek, format, startOfMonth, addDays, addWeeks } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { useTranslation } from '../../src/hooks/useTranslation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 type Period = 'daily' | 'weekly' | 'monthly';
@@ -21,6 +22,7 @@ function SummaryCard({ label, amount, icon, color }: {
   label: string; amount: number; icon: any; color: string;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   return (
     <View style={[styles.summaryCard, { backgroundColor: colors.surface }]}>
       <View style={[styles.summaryIcon, { backgroundColor: hexToRgba(color, 0.15) }]}>
@@ -34,6 +36,7 @@ function SummaryCard({ label, amount, icon, color }: {
 
 export default function ReportsScreen() {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [period, setPeriod] = useState<Period>('monthly');
   const [offset, setOffset] = useState(0);
@@ -63,8 +66,8 @@ export default function ReportsScreen() {
         ]));
         if (chartPoints.length === 0) {
           chartPoints = [
-            { label: 'Pemasukan', value: 0, frontColor: Colors.income, spacing: 4, barWidth: 24 },
-            { label: 'Pengeluaran', value: 0, frontColor: Colors.expense, barWidth: 24 },
+            { label: t.income, value: 0, frontColor: Colors.income, spacing: 4, barWidth: 24 },
+            { label: t.expense, value: 0, frontColor: Colors.expense, barWidth: 24 },
           ];
         }
       } else {
@@ -117,7 +120,7 @@ export default function ReportsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Laporan</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t.reportsTitle}</Text>
       </View>
 
       {/* Period Toggle */}
@@ -129,7 +132,7 @@ export default function ReportsScreen() {
             onPress={() => { setPeriod(p); setOffset(0); }}
           >
             <Text style={[styles.periodText, { color: period === p ? '#fff' : colors.textSecondary }]}>
-              {p === 'daily' ? 'Harian' : p === 'weekly' ? 'Mingguan' : 'Bulanan'}
+              {p === 'daily' ? t.daily : p === 'weekly' ? t.weekly : t.monthly}
             </Text>
           </TouchableOpacity>
         ))}
@@ -156,10 +159,10 @@ export default function ReportsScreen() {
 
         {/* Summary Cards */}
         <View style={styles.summaryRow}>
-          <SummaryCard label="Pemasukan" amount={summary.income} icon="arrow-down-circle" color={Colors.income} />
-          <SummaryCard label="Pengeluaran" amount={summary.expense} icon="arrow-up-circle" color={Colors.expense} />
+          <SummaryCard label={t.income} amount={summary.income} icon="arrow-down-circle" color={Colors.income} />
+          <SummaryCard label={t.expense} amount={summary.expense} icon="arrow-up-circle" color={Colors.expense} />
           <SummaryCard
-            label="Selisih"
+            label={t.difference}
             amount={summary.income - summary.expense}
             icon="analytics"
             color={summary.income >= summary.expense ? Colors.income : Colors.expense}
@@ -171,11 +174,11 @@ export default function ReportsScreen() {
           <View style={styles.chartLegend}>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: Colors.income }]} />
-              <Text style={[styles.legendText, { color: colors.textSecondary }]}>Pemasukan</Text>
+              <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t.income}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: Colors.expense }]} />
-              <Text style={[styles.legendText, { color: colors.textSecondary }]}>Pengeluaran</Text>
+              <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t.expense}</Text>
             </View>
           </View>
 
@@ -186,7 +189,7 @@ export default function ReportsScreen() {
           ) : barData.length === 0 ? (
             <View style={styles.chartEmpty}>
               <Ionicons name="bar-chart-outline" size={48} color={colors.textMuted} />
-              <Text style={[{ color: colors.textMuted, marginTop: 8 }]}>Belum ada data</Text>
+              <Text style={[{ color: colors.textMuted, marginTop: 8 }]}>{t.noData}</Text>
             </View>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -214,19 +217,19 @@ export default function ReportsScreen() {
         {/* Net Summary */}
         <View style={[styles.netCard, { backgroundColor: colors.surface }]}>
           <Text style={[styles.netLabel, { color: colors.textSecondary }]}>
-            Kondisi Keuangan {dateRange.label}
+            {t.financialCondition} {dateRange.label}
           </Text>
           <Text style={[
             styles.netAmount,
             { color: summary.income >= summary.expense ? Colors.income : Colors.expense },
           ]}>
-            {summary.income >= summary.expense ? 'Surplus ' : 'Defisit '}
+            {summary.income >= summary.expense ? (t.surplus + ' ') : (t.deficit + ' ')}
             {formatCurrency(Math.abs(summary.income - summary.expense))}
           </Text>
           <Text style={[styles.netSubtitle, { color: colors.textMuted }]}>
             {summary.income >= summary.expense
-              ? 'Keuangan kamu sehat! Pemasukan melebihi pengeluaran.'
-              : 'Hati-hati! Pengeluaran melebihi pemasukan bulan ini.'}
+              ? t.financialHealthy
+              : t.financialWarning}
           </Text>
         </View>
       </ScrollView>

@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSettingsStore } from '../src/store/useSettingsStore';
 import { Colors, FontSize, BorderRadius } from '../src/constants/Colors';
+import { useTranslation } from '../src/hooks/useTranslation';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -62,10 +63,46 @@ const SLIDES: Slide[] = [
 ];
 
 export default function OnboardingScreen() {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const dotAnims = useRef(SLIDES.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))).current;
   const { setSetting } = useSettingsStore();
+
+  const localizedSlides = SLIDES.map(slide => {
+    switch (slide.id) {
+      case 'welcome':
+        return {
+          ...slide,
+          title: t.welcomeTitle,
+          subtitle: t.welcomeSubtitle,
+          tip: t.welcomeTip,
+        };
+      case 'transactions':
+        return {
+          ...slide,
+          title: t.slide2Title,
+          subtitle: t.slide2Subtitle,
+          tip: t.slide2Tip,
+        };
+      case 'analytics':
+        return {
+          ...slide,
+          title: t.slide3Title,
+          subtitle: t.slide3Subtitle,
+          tip: t.slide3Tip,
+        };
+      case 'goals':
+        return {
+          ...slide,
+          title: t.slide4Title,
+          subtitle: t.slide4Subtitle,
+          tip: t.slide4Tip,
+        };
+      default:
+        return slide;
+    }
+  });
 
   const goTo = (index: number) => {
     scrollRef.current?.scrollTo({ x: index * SCREEN_W, animated: true });
@@ -98,7 +135,7 @@ export default function OnboardingScreen() {
     if (idx !== currentIndex) goTo(idx);
   };
 
-  const slide = SLIDES[currentIndex];
+  const slide = localizedSlides[currentIndex];
 
   return (
     <View style={styles.container}>
@@ -113,7 +150,7 @@ export default function OnboardingScreen() {
       {/* Skip button */}
       {currentIndex < SLIDES.length - 1 && (
         <TouchableOpacity style={styles.skipBtn} onPress={handleFinish}>
-          <Text style={styles.skipText}>Lewati</Text>
+          <Text style={styles.skipText}>{t.skip}</Text>
         </TouchableOpacity>
       )}
 
@@ -127,7 +164,7 @@ export default function OnboardingScreen() {
         scrollEventThrottle={16}
         style={{ flex: 1 }}
       >
-        {SLIDES.map((s, i) => (
+        {localizedSlides.map((s, i) => (
           <View key={s.id} style={[styles.slide, { width: SCREEN_W }]}>
             {/* Decorative circles */}
             <View style={[styles.decoCircle1, { backgroundColor: s.iconBg }]} />
@@ -180,7 +217,7 @@ export default function OnboardingScreen() {
             style={styles.nextBtnGrad}
           >
             <Text style={styles.nextBtnText}>
-              {currentIndex === SLIDES.length - 1 ? 'Mulai Sekarang!' : 'Lanjut'}
+              {currentIndex === SLIDES.length - 1 ? t.start : t.next}
             </Text>
             <Ionicons
               name={currentIndex === SLIDES.length - 1 ? 'checkmark-circle' : 'arrow-forward'}

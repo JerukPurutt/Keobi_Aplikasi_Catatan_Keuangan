@@ -11,6 +11,7 @@ import { Colors, BorderRadius, FontSize, Shadow } from '../../src/constants/Colo
 import { formatCurrency, getDateRangeForPeriod, calculatePercentageChange, hexToRgba } from '../../src/utils/helpers';
 import { transactionRepository } from '../../src/db/transactionRepository';
 import { CategorySummary, AnalyticsInsight } from '../../src/types';
+import { useTranslation } from '../../src/hooks/useTranslation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -43,12 +44,13 @@ function InsightCard({ insight }: { insight: AnalyticsInsight }) {
 // ── Category Bar ─────────────────────────────────────────────────────────────
 function CategoryBar({ item, maxAmount }: { item: CategorySummary; maxAmount: number }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const pct = maxAmount > 0 ? (item.total / maxAmount) : 0;
   return (
     <View style={styles.catBar}>
       <View style={styles.catBarHeader}>
         <View style={[styles.catDot, { backgroundColor: item.category_color || Colors.primary }]} />
-        <Text style={[styles.catBarName, { color: colors.text }]}>{item.category_name || 'Lainnya'}</Text>
+        <Text style={[styles.catBarName, { color: colors.text }]}>{item.category_name || t.others}</Text>
         <Text style={[styles.catBarPct, { color: colors.textSecondary }]}>
           {item.percentage.toFixed(1)}%
         </Text>
@@ -67,6 +69,7 @@ function CategoryBar({ item, maxAmount }: { item: CategorySummary; maxAmount: nu
 // ── Main Screen ──────────────────────────────────────────────────────────────
 export default function AnalyticsScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'expense' | 'income'>('expense');
   const [isLoading, setIsLoading] = useState(false);
@@ -103,15 +106,15 @@ export default function AnalyticsScreen() {
       if (expenseChange > 20) {
         generatedInsights.push({
           type: 'warning',
-          title: `Pengeluaran naik ${expenseChange.toFixed(0)}%`,
-          description: `Pengeluaranmu bulan ini naik ${formatCurrency(curSummary.expense - prevSum.expense, true)} dibanding bulan lalu. Yuk mulai hemat!`,
+          title: t.expenseUpTitle.replace('{percent}', expenseChange.toFixed(0)),
+          description: t.expenseUpDesc.replace('{amount}', formatCurrency(curSummary.expense - prevSum.expense, true)),
           icon: 'trending-up',
         });
       } else if (expenseChange < -10) {
         generatedInsights.push({
           type: 'success',
-          title: `Pengeluaran turun ${Math.abs(expenseChange).toFixed(0)}%! 🎉`,
-          description: `Luar biasa! Kamu berhasil menghemat ${formatCurrency(prevSum.expense - curSummary.expense, true)} bulan ini.`,
+          title: t.expenseDownTitle.replace('{percent}', Math.abs(expenseChange).toFixed(0)),
+          description: t.expenseDownDesc.replace('{amount}', formatCurrency(prevSum.expense - curSummary.expense, true)),
           icon: 'trending-down',
         });
       }
@@ -119,15 +122,15 @@ export default function AnalyticsScreen() {
       if (savingsRate > 30) {
         generatedInsights.push({
           type: 'success',
-          title: `Tingkat tabungan ${savingsRate.toFixed(0)}% 💪`,
-          description: 'Kamu menyimpan lebih dari 30% penghasilan. Pertahankan!',
+          title: t.savingsRateGoodTitle.replace('{percent}', savingsRate.toFixed(0)),
+          description: t.savingsRateGoodDesc,
           icon: 'save',
         });
       } else if (savingsRate < 10 && curSummary.income > 0) {
         generatedInsights.push({
           type: 'tip',
-          title: 'Tingkatkan tabunganmu',
-          description: `Kamu hanya menabung ${savingsRate.toFixed(0)}% dari penghasilan. Targetkan minimal 20%.`,
+          title: t.savingsRateLowTitle,
+          description: t.savingsRateLowDesc.replace('{percent}', savingsRate.toFixed(0)),
           icon: 'bulb',
         });
       }
@@ -135,8 +138,8 @@ export default function AnalyticsScreen() {
       if (incomeChange > 10) {
         generatedInsights.push({
           type: 'success',
-          title: `Pemasukan naik ${incomeChange.toFixed(0)}%`,
-          description: `Pendapatanmu bertambah ${formatCurrency(curSummary.income - prevSum.income, true)} bulan ini. Pertahankan!`,
+          title: t.incomeUpTitle.replace('{percent}', incomeChange.toFixed(0)),
+          description: t.incomeUpDesc.replace('{amount}', formatCurrency(curSummary.income - prevSum.income, true)),
           icon: 'cash',
         });
       }
@@ -145,8 +148,11 @@ export default function AnalyticsScreen() {
         const topCat = breakdown[0];
         generatedInsights.push({
           type: 'info',
-          title: `Terbesar: ${topCat.category_name || 'Lainnya'}`,
-          description: `Kategori ini menyumbang ${topCat.percentage.toFixed(1)}% dari total ${activeTab === 'expense' ? 'pengeluaran' : 'pemasukan'} (${formatCurrency(topCat.total, true)}).`,
+          title: t.topCategoryTitle.replace('{category}', topCat.category_name || t.others),
+          description: t.topCategoryDesc
+            .replace('{percent}', topCat.percentage.toFixed(1))
+            .replace('{type}', activeTab === 'expense' ? (t.profile === 'Profil' ? 'pengeluaran' : 'expenses') : (t.profile === 'Profil' ? 'pemasukan' : 'income'))
+            .replace('{amount}', formatCurrency(topCat.total, true)),
           icon: 'pie-chart',
         });
       }
@@ -154,8 +160,8 @@ export default function AnalyticsScreen() {
       if (curSummary.expense > curSummary.income && curSummary.income > 0) {
         generatedInsights.push({
           type: 'warning',
-          title: 'Pengeluaran melebihi pemasukan',
-          description: `Defisit ${formatCurrency(curSummary.expense - curSummary.income, true)} bulan ini. Perlu evaluasi pengeluaran.`,
+          title: t.deficitTitle,
+          description: t.deficitDesc.replace('{amount}', formatCurrency(curSummary.expense - curSummary.income, true)),
           icon: 'alert-circle',
         });
       }
@@ -163,8 +169,8 @@ export default function AnalyticsScreen() {
       if (generatedInsights.length === 0) {
         generatedInsights.push({
           type: 'info',
-          title: 'Belum ada transaksi bulan ini',
-          description: 'Mulai catat transaksi untuk mendapatkan insight keuangan personalmu.',
+          title: t.noTxnTitle,
+          description: t.noTxnDesc,
           icon: 'information-circle',
         });
       }
@@ -184,7 +190,7 @@ export default function AnalyticsScreen() {
     value: c.total,
     color: c.category_color || Colors.primary,
     text: `${c.percentage.toFixed(0)}%`,
-    label: c.category_name || 'Lainnya',
+    label: c.category_name || t.others,
   }));
 
   const maxAmount = categoryBreakdown[0]?.total || 1;
@@ -192,21 +198,21 @@ export default function AnalyticsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Analisis</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t.analyticsTitle}</Text>
       </View>
 
       {/* Tab */}
       <View style={[styles.tab, { backgroundColor: colors.surfaceSecondary }]}>
-        {(['expense', 'income'] as const).map(t => (
+        {(['expense', 'income'] as const).map(tabType => (
           <TouchableOpacity
-            key={t}
-            style={[styles.tabBtn, activeTab === t && {
-              backgroundColor: t === 'expense' ? Colors.expense : Colors.income,
+            key={tabType}
+            style={[styles.tabBtn, activeTab === tabType && {
+              backgroundColor: tabType === 'expense' ? Colors.expense : Colors.income,
             }]}
-            onPress={() => setActiveTab(t)}
+            onPress={() => setActiveTab(tabType)}
           >
-            <Text style={[styles.tabText, { color: activeTab === t ? '#fff' : colors.textMuted }]}>
-              {t === 'expense' ? 'Pengeluaran' : 'Pemasukan'}
+            <Text style={[styles.tabText, { color: activeTab === tabType ? '#fff' : colors.textMuted }]}>
+              {tabType === 'expense' ? t.expense : t.income}
             </Text>
           </TouchableOpacity>
         ))}
@@ -221,7 +227,7 @@ export default function AnalyticsScreen() {
           {/* Pie Chart */}
           {pieData.length > 0 && (
             <View style={[styles.pieCard, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Distribusi Kategori</Text>
+              <Text style={[styles.cardTitle, { color: colors.text }]}>{t.categoryDistribution}</Text>
               <View style={styles.pieContainer}>
                 <PieChart
                   data={pieData}
@@ -261,11 +267,11 @@ export default function AnalyticsScreen() {
 
           {/* Category Breakdown */}
           <View style={[styles.breakdownCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Detail Kategori</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{t.categoryDetails}</Text>
             {categoryBreakdown.length === 0 ? (
               <View style={styles.emptyBreakdown}>
                 <Ionicons name="pie-chart-outline" size={40} color={colors.textMuted} />
-                <Text style={[{ color: colors.textMuted, marginTop: 8 }]}>Belum ada data</Text>
+                <Text style={[{ color: colors.textMuted, marginTop: 8 }]}>{t.noData}</Text>
               </View>
             ) : (
               categoryBreakdown.map(item => (
@@ -277,7 +283,7 @@ export default function AnalyticsScreen() {
           {/* Insights */}
           <View style={styles.insightsSection}>
             <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 12 }]}>
-              Insight Personal
+              {t.personalInsight}
             </Text>
             {insights.map((insight, i) => (
               <InsightCard key={i} insight={insight} />
