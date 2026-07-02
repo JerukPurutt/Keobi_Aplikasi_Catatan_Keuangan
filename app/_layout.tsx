@@ -43,13 +43,18 @@ export default function RootLayout() {
   const init = useCallback(async () => {
     try {
       await getDatabase();
-      await Promise.all([
-        loadSettings(),
-        loadWallets(),
-        loadTransactions(true),
-        loadMonthSummary(),
-        loadCategories(),
-      ]);
+      // Load settings first so user email is available in settings store
+      await loadSettings();
+      
+      const state = useSettingsStore.getState();
+      if (state.session_active && state.login_email) {
+        await Promise.all([
+          loadWallets(),
+          loadTransactions(true),
+          loadMonthSummary(),
+          loadCategories(),
+        ]);
+      }
     } catch (e) {
       console.error('App init error:', e);
     } finally {

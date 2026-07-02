@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Modal, Alert, Dimensions,
@@ -115,10 +115,14 @@ export default function WalletManagerScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { wallets, addWallet, updateWallet, deleteWallet } = useWalletStore();
+  const { wallets, loadWallets, addWallet, updateWallet, deleteWallet } = useWalletStore();
 
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [editingWallet, setEditingWallet] = useState<Wallet | undefined>();
+
+  useEffect(() => {
+    loadWallets();
+  }, []);
 
   const handleDeleteWallet = (wallet: Wallet) => {
     Alert.alert(

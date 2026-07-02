@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Modal, Alert,
@@ -123,11 +123,15 @@ export default function CategoryManagerScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { categories, addCategory, updateCategory, deleteCategory } = useCategoryStore();
+  const { categories, loadCategories, addCategory, updateCategory, deleteCategory } = useCategoryStore();
 
   const [categoryTab, setCategoryTab] = useState<'expense' | 'income'>('expense');
   const [showCatModal, setShowCatModal] = useState(false);
   const [editingCat, setEditingCat] = useState<Category | undefined>();
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
 
   const handleDeleteCat = (cat: Category) => {
     if (cat.is_default) { Alert.alert('Info', t.defaultCategoryInfo); return; }
