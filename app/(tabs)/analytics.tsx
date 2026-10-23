@@ -17,23 +17,31 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ── Insight Card ─────────────────────────────────────────────────────────────
 const INSIGHT_COLORS = {
-  warning: { bg: '#FEF3C7', icon: Colors.accent, text: '#92400E' },
-  success: { bg: '#D1FAE5', icon: Colors.income, text: '#065F46' },
-  info: { bg: '#EFF6FF', icon: Colors.primary, text: '#1E40AF' },
-  tip: { bg: '#F5F3FF', icon: '#8B5CF6', text: '#5B21B6' },
+  warning: { bg: '#FEF3C7', icon: '#F59E0B', text: '#92400E', border: '#FDE68A' },
+  success: { bg: '#ECFDF5', icon: Colors.income, text: '#065F46', border: '#A7F3D0' },
+  info: { bg: '#F0F9FF', icon: Colors.primary, text: '#0369A1', border: '#BAE6FD' },
+  tip: { bg: '#F5F3FF', icon: '#8B5CF6', text: '#5B21B6', border: '#DDD6FE' },
 };
 
 function InsightCard({ insight }: { insight: AnalyticsInsight }) {
-  const { isDark } = useTheme();
-  const c = INSIGHT_COLORS[insight.type];
+  const { colors, isDark } = useTheme();
+  const c = INSIGHT_COLORS[insight.type] || INSIGHT_COLORS.info;
   return (
-    <View style={[styles.insightCard, { backgroundColor: isDark ? Colors.dark.surfaceSecondary : c.bg }]}>
-      <Ionicons name={insight.icon as any} size={24} color={c.icon} />
+    <View style={[
+      styles.insightCard,
+      {
+        backgroundColor: isDark ? colors.surfaceSecondary : '#FFFFFF',
+        borderColor: isDark ? colors.border : c.border,
+      }
+    ]}>
+      <View style={[styles.insightIconContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : c.bg }]}>
+        <Ionicons name={insight.icon as any} size={18} color={c.icon} />
+      </View>
       <View style={{ flex: 1 }}>
-        <Text style={[styles.insightTitle, { color: isDark ? Colors.dark.text : c.text }]}>
+        <Text style={[styles.insightTitle, { color: isDark ? colors.text : '#0F172A' }]}>
           {insight.title}
         </Text>
-        <Text style={[styles.insightDesc, { color: isDark ? Colors.dark.textSecondary : c.text + 'BB' }]}>
+        <Text style={[styles.insightDesc, { color: isDark ? colors.textSecondary : colors.textSecondary }]}>
           {insight.description}
         </Text>
       </View>
@@ -56,7 +64,7 @@ function CategoryBar({ item, maxAmount }: { item: CategorySummary; maxAmount: nu
         </Text>
         <Text style={[styles.catBarAmount, { color: colors.text }]}>{formatCurrency(item.total, true)}</Text>
       </View>
-      <View style={[styles.catBarTrack, { backgroundColor: colors.border }]}>
+      <View style={[styles.catBarTrack, { backgroundColor: colors.borderSubtle || colors.border }]}>
         <View style={[
           styles.catBarFill,
           { width: `${Math.min(pct * 100, 100)}%`, backgroundColor: item.category_color || Colors.primary },
@@ -68,7 +76,7 @@ function CategoryBar({ item, maxAmount }: { item: CategorySummary; maxAmount: nu
 
 // ── Main Screen ──────────────────────────────────────────────────────────────
 export default function AnalyticsScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'expense' | 'income'>('expense');
@@ -201,21 +209,35 @@ export default function AnalyticsScreen() {
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t.analyticsTitle}</Text>
       </View>
 
-      {/* Tab */}
-      <View style={[styles.tab, { backgroundColor: colors.surfaceSecondary }]}>
-        {(['expense', 'income'] as const).map(tabType => (
-          <TouchableOpacity
-            key={tabType}
-            style={[styles.tabBtn, activeTab === tabType && {
-              backgroundColor: tabType === 'expense' ? Colors.expense : Colors.income,
-            }]}
-            onPress={() => setActiveTab(tabType)}
-          >
-            <Text style={[styles.tabText, { color: activeTab === tabType ? '#fff' : colors.textMuted }]}>
-              {tabType === 'expense' ? t.expense : t.income}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      {/* Tab - Shadcn Segmented */}
+      <View style={[styles.tab, { backgroundColor: isDark ? colors.surfaceSecondary : '#F1F5F9' }]}>
+        {(['expense', 'income'] as const).map(tabType => {
+          const isSelected = activeTab === tabType;
+          return (
+            <TouchableOpacity
+              key={tabType}
+              style={[
+                styles.tabBtn,
+                isSelected && [
+                  styles.tabBtnActive,
+                  { backgroundColor: colors.surface, ...Shadow.sm },
+                ],
+              ]}
+              onPress={() => {
+                setActiveTab(tabType);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={[
+                styles.tabText,
+                { color: isSelected ? Colors.primary : colors.textSecondary },
+                isSelected && { fontWeight: '700' },
+              ]}>
+                {tabType === 'expense' ? t.expense : t.income}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {isLoading ? (
@@ -224,20 +246,20 @@ export default function AnalyticsScreen() {
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-          {/* Pie Chart */}
+          {/* Pie Chart Card */}
           {pieData.length > 0 && (
-            <View style={[styles.pieCard, { backgroundColor: colors.surface }]}>
+            <View style={[styles.pieCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.cardTitle, { color: colors.text }]}>{t.categoryDistribution}</Text>
               <View style={styles.pieContainer}>
                 <PieChart
                   data={pieData}
                   donut
-                  radius={90}
-                  innerRadius={55}
+                  radius={85}
+                  innerRadius={52}
                   centerLabelComponent={() => (
                     <View style={{ alignItems: 'center' }}>
-                      <Text style={{ color: colors.textMuted, fontSize: 11 }}>Total</Text>
-                      <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700' }}>
+                      <Text style={{ color: colors.textMuted, fontSize: 10 }}>Total</Text>
+                      <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700' }}>
                         {formatCurrency(
                           activeTab === 'expense' ? currentSummary.expense : currentSummary.income,
                           true
@@ -265,13 +287,13 @@ export default function AnalyticsScreen() {
             </View>
           )}
 
-          {/* Category Breakdown */}
-          <View style={[styles.breakdownCard, { backgroundColor: colors.surface }]}>
+          {/* Category Breakdown Card */}
+          <View style={[styles.breakdownCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.cardTitle, { color: colors.text }]}>{t.categoryDetails}</Text>
             {categoryBreakdown.length === 0 ? (
               <View style={styles.emptyBreakdown}>
                 <Ionicons name="pie-chart-outline" size={40} color={colors.textMuted} />
-                <Text style={[{ color: colors.textMuted, marginTop: 8 }]}>{t.noData}</Text>
+                <Text style={[{ color: colors.textMuted, marginTop: 8, fontSize: FontSize.xs }]}>{t.noData}</Text>
               </View>
             ) : (
               categoryBreakdown.map(item => (
@@ -280,9 +302,9 @@ export default function AnalyticsScreen() {
             )}
           </View>
 
-          {/* Insights */}
+          {/* Insights Section */}
           <View style={styles.insightsSection}>
-            <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 12 }]}>
+            <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 8 }]}>
               {t.personalInsight}
             </Text>
             {insights.map((insight, i) => (
@@ -297,38 +319,70 @@ export default function AnalyticsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingBottom: 12 },
-  headerTitle: { fontSize: FontSize.xxl, fontWeight: '800' },
+  header: { paddingHorizontal: 20, paddingBottom: 8 },
+  headerTitle: { fontSize: FontSize.xxl, fontWeight: '800', letterSpacing: -0.5 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   tab: {
-    flexDirection: 'row', marginHorizontal: 20, borderRadius: BorderRadius.lg,
-    padding: 4, marginBottom: 16,
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginTop: 8,
+    borderRadius: BorderRadius.lg,
+    padding: 3,
+    marginBottom: 16,
   },
-  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: BorderRadius.md },
-  tabText: { fontSize: FontSize.sm, fontWeight: '600' },
-  pieCard: { marginHorizontal: 20, borderRadius: BorderRadius.lg, padding: 16, marginBottom: 16 },
-  cardTitle: { fontSize: FontSize.lg, fontWeight: '700', marginBottom: 16 },
+  tabBtn: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: BorderRadius.md },
+  tabBtnActive: {},
+  tabText: { fontSize: FontSize.xs, fontWeight: '600' },
+  pieCard: {
+    marginHorizontal: 20,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+    ...Shadow.sm,
+  },
+  cardTitle: { fontSize: FontSize.md, fontWeight: '700', marginBottom: 14, letterSpacing: -0.3 },
   pieContainer: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   pieLegend: { flex: 1, gap: 8 },
   pieLegendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pieDot: { width: 8, height: 8, borderRadius: 4 },
-  pieLegendText: { flex: 1, fontSize: 12 },
-  pieLegendPct: { fontSize: 12, fontWeight: '700' },
-  breakdownCard: { marginHorizontal: 20, borderRadius: BorderRadius.lg, padding: 16, marginBottom: 16, gap: 12 },
+  pieLegendText: { flex: 1, fontSize: 11 },
+  pieLegendPct: { fontSize: 11, fontWeight: '700' },
+  breakdownCard: {
+    marginHorizontal: 20,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+    gap: 12,
+    ...Shadow.sm,
+  },
   catBar: { gap: 6 },
   catBarHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  catDot: { width: 10, height: 10, borderRadius: 5 },
-  catBarName: { flex: 1, fontSize: FontSize.sm, fontWeight: '600' },
-  catBarPct: { fontSize: 12 },
-  catBarAmount: { fontSize: FontSize.sm, fontWeight: '700' },
+  catDot: { width: 8, height: 8, borderRadius: 4 },
+  catBarName: { flex: 1, fontSize: FontSize.xs, fontWeight: '600' },
+  catBarPct: { fontSize: 11 },
+  catBarAmount: { fontSize: FontSize.xs, fontWeight: '700' },
   catBarTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
   catBarFill: { height: '100%', borderRadius: 3 },
   insightsSection: { paddingHorizontal: 20, gap: 10 },
   insightCard: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    padding: 14, borderRadius: BorderRadius.lg, gap: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 14,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    gap: 12,
+    ...Shadow.sm,
   },
-  insightTitle: { fontSize: FontSize.sm, fontWeight: '700', marginBottom: 4 },
-  insightDesc: { fontSize: 12, lineHeight: 18 },
+  insightIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  insightTitle: { fontSize: FontSize.xs, fontWeight: '700', marginBottom: 3, letterSpacing: -0.2 },
+  insightDesc: { fontSize: 11, lineHeight: 16 },
   emptyBreakdown: { alignItems: 'center', paddingVertical: 32 },
 });

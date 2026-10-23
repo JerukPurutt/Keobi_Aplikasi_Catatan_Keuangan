@@ -197,33 +197,38 @@ export default function TransactionScreen() {
       </View>
 
       {/* Mode Toggle */}
-      <View style={[styles.modeToggleContainer, { backgroundColor: colors.surfaceSecondary }]}>
+      <View style={[styles.modeToggleContainer, { backgroundColor: isDark ? colors.surfaceSecondary : '#F1F5F9' }]}>
         {(['expense', 'income'] as TransactionMode[]).map(m => {
           const isActive = mode === m;
+          const isInc = m === 'income';
           return (
             <TouchableOpacity
               key={m}
               style={[
                 styles.modeBtn,
-                isActive && {
-                  backgroundColor: colors.surface,
-                  ...Shadow.sm,
-                },
+                isActive && [
+                  styles.modeBtnActive,
+                  { backgroundColor: colors.surface, ...Shadow.sm },
+                ],
               ]}
-              onPress={() => { setMode(m); setSelectedCategory(null); }}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setMode(m);
+                setSelectedCategory(null);
+              }}
               activeOpacity={0.8}
             >
               <Ionicons
-                name={m === 'income' ? 'arrow-down-circle' : 'arrow-up-circle'}
+                name={isInc ? 'arrow-down-circle' : 'arrow-up-circle'}
                 size={18}
-                color={isActive ? (m === 'income' ? Colors.income : Colors.expense) : colors.textMuted}
+                color={isActive ? (isInc ? Colors.income : Colors.expense) : colors.textMuted}
               />
               <Text style={[
                 styles.modeBtnText,
-                { color: isActive ? colors.text : colors.textMuted },
+                { color: isActive ? (isInc ? Colors.incomeDark : Colors.expenseDark) : colors.textSecondary },
                 isActive && { fontWeight: '700' },
               ]}>
-                {m === 'income' ? t.income : t.expense}
+                {isInc ? t.income : t.expense}
               </Text>
             </TouchableOpacity>
           );
@@ -232,16 +237,12 @@ export default function TransactionScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Amount Section */}
-        <View style={styles.amountSection}>
+        <View style={[styles.amountCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.amountHeader, { color: colors.textMuted }]}>{t.txnAmountTitle}</Text>
-          <Text style={[styles.amountText, { color: colors.text }]}>
-            Rp {amount.toLocaleString('id-ID')}
-          </Text>
-          
-          <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
-            <Text style={[styles.inputPrefix, { color: colors.text }]}>Rp </Text>
+          <View style={styles.amountInputRow}>
+            <Text style={[styles.amountPrefix, { color: modeColor }]}>Rp</Text>
             <TextInput
-              style={[styles.realInput, { color: colors.text }]}
+              style={[styles.amountInput, { color: colors.text }]}
               keyboardType="number-pad"
               value={amount > 0 ? amount.toLocaleString('id-ID') : ''}
               onChangeText={handleAmountChange}
@@ -253,15 +254,18 @@ export default function TransactionScreen() {
           </View>
         </View>
 
-        {/* Form Fields */}
-        <View style={[styles.formCard, { backgroundColor: colors.surface }]}>
+        {/* Form Fields Card */}
+        <View style={[styles.formCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {/* Wallet */}
           <TouchableOpacity
-            style={[styles.formRow, { borderBottomColor: colors.border }]}
+            style={[styles.formRow, { borderBottomColor: colors.borderSubtle || colors.border }]}
             onPress={() => setShowWalletModal(true)}
+            activeOpacity={0.7}
           >
-            <Ionicons name="wallet" size={20} color={Colors.primary} />
-            <Text style={[styles.formLabel, { color: colors.text }]}>{t.wallet}</Text>
+            <View style={[styles.formIconContainer, { backgroundColor: Colors.primaryTint }]}>
+              <Ionicons name="wallet-outline" size={18} color={Colors.primary} />
+            </View>
+            <Text style={[styles.formLabel, { color: colors.textSecondary }]}>{t.wallet}</Text>
             <View style={styles.formValue}>
               {selectedWallet ? (
                 <>
@@ -277,11 +281,14 @@ export default function TransactionScreen() {
 
           {/* Category */}
           <TouchableOpacity
-            style={[styles.formRow, { borderBottomColor: colors.border }]}
+            style={[styles.formRow, { borderBottomColor: colors.borderSubtle || colors.border }]}
             onPress={() => setShowCategoryModal(true)}
+            activeOpacity={0.7}
           >
-            <Ionicons name="pricetag" size={20} color={Colors.primary} />
-            <Text style={[styles.formLabel, { color: colors.text }]}>{t.category}</Text>
+            <View style={[styles.formIconContainer, { backgroundColor: Colors.primaryTint }]}>
+              <Ionicons name="pricetag-outline" size={18} color={Colors.primary} />
+            </View>
+            <Text style={[styles.formLabel, { color: colors.textSecondary }]}>{t.category}</Text>
             <View style={styles.formValue}>
               {selectedCategory ? (
                 <>
@@ -297,14 +304,17 @@ export default function TransactionScreen() {
 
           {/* Date */}
           <TouchableOpacity
-            style={[styles.formRow, { borderBottomColor: colors.border }]}
+            style={[styles.formRow, { borderBottomColor: colors.borderSubtle || colors.border }]}
             onPress={() => setShowDatePicker(true)}
+            activeOpacity={0.7}
           >
-            <Ionicons name="calendar" size={20} color={Colors.primary} />
-            <Text style={[styles.formLabel, { color: colors.text }]}>{t.date}</Text>
+            <View style={[styles.formIconContainer, { backgroundColor: Colors.primaryTint }]}>
+              <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
+            </View>
+            <Text style={[styles.formLabel, { color: colors.textSecondary }]}>{t.date}</Text>
             <View style={styles.formValue}>
               <Text style={[styles.formValueText, { color: colors.text }]}>
-                {formatDate(selectedDate.getTime(), t.profile === 'Profil' ? 'dd MMMM yyyy' : 'dd MMMM yyyy')}
+                {formatDate(selectedDate.getTime(), 'dd MMMM yyyy')}
               </Text>
               <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
             </View>
@@ -312,8 +322,10 @@ export default function TransactionScreen() {
 
           {/* Note */}
           <View style={[styles.formRow, { borderBottomWidth: 0 }]}>
-            <Ionicons name="create" size={20} color={Colors.primary} />
-            <Text style={[styles.formLabel, { color: colors.text }]}>{t.note}</Text>
+            <View style={[styles.formIconContainer, { backgroundColor: Colors.primaryTint }]}>
+              <Ionicons name="create-outline" size={18} color={Colors.primary} />
+            </View>
+            <Text style={[styles.formLabel, { color: colors.textSecondary }]}>{t.note}</Text>
             <TextInput
               style={[styles.noteInput, { color: colors.text }]}
               placeholder={t.noNote}
@@ -330,9 +342,9 @@ export default function TransactionScreen() {
           style={[styles.submitBtn, { backgroundColor: modeColor }, isSubmitting && { opacity: 0.7 }]}
           onPress={handleSubmit}
           disabled={isSubmitting}
-          activeOpacity={0.85}
+          activeOpacity={0.88}
         >
-          <Ionicons name="checkmark-circle" size={22} color="#fff" />
+          <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
           <Text style={styles.submitText}>
             {isSubmitting ? t.saving : (isIncome ? t.saveIncome : t.saveExpense)}
           </Text>
@@ -371,99 +383,132 @@ export default function TransactionScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingBottom: 12 },
-  headerTitle: { fontSize: FontSize.xxl, fontWeight: '800' },
+  header: { paddingHorizontal: 20, paddingBottom: 8 },
+  headerTitle: { fontSize: FontSize.xxl, fontWeight: '800', letterSpacing: -0.5 },
   modeToggleContainer: {
-    flexDirection: 'row', margin: 20, borderRadius: BorderRadius.md, padding: 4,
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 16,
+    borderRadius: BorderRadius.lg,
+    padding: 3,
   },
   modeBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, paddingVertical: 12, borderRadius: BorderRadius.md,
-  },
-  modeBtnText: { fontSize: FontSize.md },
-  amountSection: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginVertical: 20,
+    justifyContent: 'center',
     gap: 6,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.md,
+  },
+  modeBtnActive: {},
+  modeBtnText: { fontSize: FontSize.sm, fontWeight: '600' },
+  amountCard: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    alignItems: 'center',
+    ...Shadow.sm,
   },
   amountHeader: {
     fontSize: FontSize.xs,
-    fontWeight: '700',
-    letterSpacing: 1.5,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
-  amountText: {
-    fontSize: 40,
-    fontWeight: '800',
-    letterSpacing: -1,
-  },
-  inputWrapper: {
+  amountInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    width: '85%',
-    marginTop: 10,
+    justifyContent: 'center',
+    gap: 6,
   },
-  inputPrefix: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
+  amountPrefix: {
+    fontSize: FontSize.xl,
+    fontWeight: '800',
   },
-  realInput: {
-    flex: 1,
-    fontSize: FontSize.lg,
-    fontWeight: '700',
+  amountInput: {
+    fontSize: 34,
+    fontWeight: '800',
+    letterSpacing: -1,
+    minWidth: 100,
+    textAlign: 'center',
     padding: 0,
   },
-  formCard: { marginHorizontal: 20, borderRadius: BorderRadius.lg, overflow: 'hidden', marginBottom: 16 },
+  formCard: {
+    marginHorizontal: 20,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: 20,
+    ...Shadow.sm,
+  },
   formRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  formLabel: { fontSize: FontSize.md, fontWeight: '600', width: 80 },
+  formIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  formLabel: { fontSize: FontSize.sm, fontWeight: '500', width: 75 },
   formValue: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
-  formValueText: { fontSize: FontSize.md },
-  formPlaceholder: { fontSize: FontSize.md },
+  formValueText: { fontSize: FontSize.sm, fontWeight: '600' },
+  formPlaceholder: { fontSize: FontSize.sm },
   walletDot: { width: 8, height: 8, borderRadius: 4 },
-  noteInput: { flex: 1, fontSize: FontSize.md, textAlign: 'right', minHeight: 20 },
+  noteInput: { flex: 1, fontSize: FontSize.sm, textAlign: 'right', minHeight: 20 },
   submitBtn: {
-    marginHorizontal: 20, paddingVertical: 18, borderRadius: BorderRadius.md,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    ...Shadow.lg,
+    marginHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    ...Shadow.sm,
   },
-  submitText: { color: '#fff', fontSize: FontSize.lg, fontWeight: '700' },
+  submitText: { color: '#fff', fontSize: FontSize.md, fontWeight: '700', letterSpacing: -0.2 },
   // Modals
   modalOverlay: {
-    flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)',
+    flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15, 23, 42, 0.45)',
   },
   modalSheet: {
     borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%',
+    borderTopWidth: 1, borderColor: '#E2E8F0',
   },
   modalHandle: {
-    width: 40, height: 4, borderRadius: 2, backgroundColor: '#ccc',
+    width: 40, height: 4, borderRadius: 2, backgroundColor: '#CBD5E1',
     alignSelf: 'center', marginBottom: 16,
   },
-  modalTitle: { fontSize: FontSize.xl, fontWeight: '700', marginBottom: 16 },
+  modalTitle: { fontSize: FontSize.lg, fontWeight: '700', marginBottom: 16, letterSpacing: -0.3 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 24 },
   categoryItem: {
     width: '30%', alignItems: 'center', padding: 12,
-    borderRadius: BorderRadius.md, gap: 8,
+    borderRadius: BorderRadius.lg, gap: 8,
   },
   catIconCircle: {
-    width: 44, height: 44, borderRadius: 22,
+    width: 42, height: 42, borderRadius: 21,
     alignItems: 'center', justifyContent: 'center',
   },
   catName: { fontSize: 12, fontWeight: '600', textAlign: 'center' },
   walletOption: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 16, borderRadius: BorderRadius.lg, borderWidth: 1.5, marginBottom: 10,
+    padding: 14, borderRadius: BorderRadius.lg, borderWidth: 1, marginBottom: 10,
   },
   walletOptionIcon: {
-    width: 44, height: 44, borderRadius: 22,
+    width: 42, height: 42, borderRadius: 21,
     alignItems: 'center', justifyContent: 'center',
   },
-  walletOptionName: { fontSize: FontSize.md, fontWeight: '600' },
-  walletOptionBalance: { fontSize: FontSize.sm, marginTop: 2 },
+  walletOptionName: { fontSize: FontSize.sm, fontWeight: '600' },
+  walletOptionBalance: { fontSize: FontSize.xs, marginTop: 2 },
 });

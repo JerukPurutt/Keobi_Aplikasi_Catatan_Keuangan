@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors, BorderRadius, Shadow } from '../src/constants/Colors';
 import { useSettingsStore } from '../src/store/useSettingsStore';
 import { useWalletStore } from '../src/store/useWalletStore';
 import { useCategoryStore } from '../src/store/useCategoryStore';
@@ -134,14 +135,14 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A1628" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
-      {/* Top gradient accent */}
+      {/* Top subtle ocean gradient accent */}
       <LinearGradient
-        colors={['#1A6FE8', '#0A1628']}
+        colors={['#E0F2FE', '#F8FAFC']}
         style={styles.topAccent}
-        start={{ x: 0.2, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
       />
 
       <KeyboardAvoidingView
@@ -151,7 +152,7 @@ export default function LoginScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: Math.max(insets.top + 24, 48) },
+            { paddingTop: Math.max(insets.top + 16, 40) },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -172,13 +173,13 @@ export default function LoginScreen() {
                 />
               </View>
               <Text style={styles.appName}>keobi</Text>
-              <Text style={styles.tagline}>Kelola keuangan pribadi Anda</Text>
+              <Text style={styles.tagline}>Atur Keuangan dengan Fresh & Rapi</Text>
             </View>
 
             {/* Card Form */}
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Masuk</Text>
-              <Text style={styles.cardSubtitle}>Selamat datang kembali </Text>
+              <Text style={styles.cardSubtitle}>Selamat datang kembali di Keobi</Text>
 
               {/* Email Field */}
               <View style={styles.fieldGroup}>
@@ -187,13 +188,13 @@ export default function LoginScreen() {
                   <Ionicons
                     name="person-outline"
                     size={18}
-                    color={emailFocused ? '#1A6FE8' : 'rgba(255,255,255,0.35)'}
+                    color={emailFocused ? Colors.primary : '#94A3B8'}
                     style={styles.inputIcon}
                   />
                   <TextInput
                     style={styles.textInput}
                     placeholder="Masukkan email atau username"
-                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    placeholderTextColor="#94A3B8"
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
@@ -217,13 +218,13 @@ export default function LoginScreen() {
                   <Ionicons
                     name="lock-closed-outline"
                     size={18}
-                    color={passwordFocused ? '#1A6FE8' : 'rgba(255,255,255,0.35)'}
+                    color={passwordFocused ? Colors.primary : '#94A3B8'}
                     style={styles.inputIcon}
                   />
                   <TextInput
                     style={styles.textInput}
                     placeholder="Masukkan kata sandi"
-                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    placeholderTextColor="#94A3B8"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -248,7 +249,7 @@ export default function LoginScreen() {
                     <Ionicons
                       name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                       size={19}
-                      color="rgba(255,255,255,0.4)"
+                      color="#94A3B8"
                     />
                   </TouchableOpacity>
                 </View>
@@ -270,13 +271,13 @@ export default function LoginScreen() {
 
               {/* Login Button */}
               <TouchableOpacity
-                activeOpacity={0.85}
+                activeOpacity={0.88}
                 onPress={handleLogin}
                 disabled={loading}
                 style={styles.primaryBtnWrapper}
               >
                 <LinearGradient
-                  colors={['#1A6FE8', '#0D4FA8']}
+                  colors={['#0284C7', '#0EA5E9']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.primaryBtn}
@@ -314,7 +315,7 @@ export default function LoginScreen() {
                 activeOpacity={0.8}
                 onPress={() => Alert.alert('Info', 'Facebook Sign In sedang disimulasikan.')}
               >
-                <Ionicons name="logo-facebook" size={20} color="#1877F2" />
+                <Ionicons name="logo-facebook" size={19} color="#1877F2" />
                 <Text style={styles.socialBtnText}>Masuk dengan Facebook</Text>
               </TouchableOpacity>
             </View>
@@ -339,7 +340,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0A1628',
+    backgroundColor: '#F8FAFC',
   },
   flex: {
     flex: 1,
@@ -349,12 +350,11 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 260,
-    opacity: 0.55,
+    height: 240,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingBottom: 16,
   },
   inner: {
@@ -364,98 +364,99 @@ const styles = StyleSheet.create({
   // Header
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   logoContainer: {
-    marginBottom: 12,
-    borderRadius: 28,
+    marginBottom: 10,
+    borderRadius: 22,
     overflow: 'hidden',
-    shadowColor: '#1A6FE8',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
     backgroundColor: '#fff',
   },
   logoImage: {
-    width: 76,
-    height: 76,
-    borderRadius: 28,
+    width: 68,
+    height: 68,
+    borderRadius: 22,
   },
   appName: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#fff',
+    color: '#0F172A',
     letterSpacing: -0.5,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   tagline: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.45)',
-    letterSpacing: 0.2,
+    color: '#64748B',
+    letterSpacing: -0.1,
   },
 
   // Card
   card: {
-    backgroundColor: '#111827',
-    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.xl,
     padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-    marginBottom: 24,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+    marginBottom: 20,
   },
   cardTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#fff',
+    color: '#0F172A',
     marginBottom: 4,
     textAlign: 'center',
+    letterSpacing: -0.4,
   },
   cardSubtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.45)',
-    marginBottom: 24,
+    color: '#64748B',
+    marginBottom: 20,
     textAlign: 'center',
   },
 
   // Fields
   fieldGroup: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   fieldLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.5)',
-    letterSpacing: 0.5,
+    color: '#475569',
+    letterSpacing: 0.3,
     textTransform: 'uppercase',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.08)',
-    height: 52,
+    backgroundColor: '#F8FAFC',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    height: 48,
     paddingHorizontal: 14,
   },
   inputRowFocused: {
-    borderColor: '#1A6FE8',
-    backgroundColor: 'rgba(26,111,232,0.06)',
+    borderColor: Colors.primary,
+    backgroundColor: '#F0F9FF',
   },
   inputIcon: {
     marginRight: 10,
   },
   textInput: {
     flex: 1,
-    color: '#fff',
-    fontSize: 15,
+    color: '#0F172A',
+    fontSize: 14,
     paddingVertical: 0,
     height: '100%',
   },
@@ -466,28 +467,28 @@ const styles = StyleSheet.create({
   // Forgot
   forgotRow: {
     alignSelf: 'flex-end',
-    marginBottom: 20,
-    marginTop: -4,
+    marginBottom: 16,
+    marginTop: -2,
   },
   forgotText: {
     fontSize: 13,
-    color: '#F5C842',
+    color: Colors.primary,
     fontWeight: '600',
   },
 
   // Primary Button
   primaryBtnWrapper: {
-    borderRadius: 14,
+    borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    marginBottom: 20,
-    shadowColor: '#1A6FE8',
+    marginBottom: 16,
+    shadowColor: '#0284C7',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    elevation: 4,
   },
   primaryBtn: {
-    height: 52,
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -495,24 +496,25 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
 
   // Divider
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
     gap: 10,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: '#E2E8F0',
   },
   dividerText: {
-    color: 'rgba(255,255,255,0.3)',
+    color: '#94A3B8',
     fontSize: 12,
   },
 
@@ -522,16 +524,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    height: 48,
-    borderRadius: 14,
+    height: 44,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    marginBottom: 10,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 8,
   },
   socialBtnText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
+    color: '#334155',
+    fontSize: 13,
     fontWeight: '600',
   },
 
@@ -542,12 +544,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 14,
+    color: '#64748B',
+    fontSize: 13,
   },
   footerLink: {
-    color: '#1A6FE8',
-    fontSize: 14,
+    color: Colors.primary,
+    fontSize: 13,
     fontWeight: '700',
   },
 });

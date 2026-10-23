@@ -1,12 +1,13 @@
-// Tab navigator layout — floating navbar with center FAB button
+// Tab navigator layout — clean shadcn floating/docked navbar with center FAB button
 import { Tabs } from 'expo-router';
 import { Platform, StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../src/hooks/useTheme';
 import { Colors } from '../../src/constants/Colors';
 
 export default function TabsLayout() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   return (
     <Tabs
@@ -18,31 +19,29 @@ export default function TabsLayout() {
           left: 0,
           right: 0,
           backgroundColor: colors.tabBar,
-          borderTopWidth: 0,
-          borderTopLeftRadius: 10,
-          borderTopRightRadius: 10,
-          height: Platform.OS === 'ios' ? 88 : 76,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 20,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          height: Platform.OS === 'ios' ? 84 : 68,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 10,
           paddingTop: 8,
-          elevation: 16,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.12,
-          shadowRadius: 16,
-          overflow: 'visible',
+          elevation: 4,
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: isDark ? 0.3 : 0.04,
+          shadowRadius: 8,
         },
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarShowLabel: true,
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: '600',
           marginTop: 2,
+          letterSpacing: -0.2,
         },
         tabBarItemStyle: {
           paddingTop: 4,
           paddingBottom: 0,
-          marginBottom: 4,
         },
       }}
     >
@@ -72,11 +71,16 @@ export default function TabsLayout() {
             <TouchableOpacity
               onPress={onPress}
               style={styles.fabWrapper}
-              activeOpacity={0.85}
+              activeOpacity={0.88}
             >
-              <View style={styles.fabButton}>
-                <Ionicons name="add" size={30} color="#fff" />
-              </View>
+              <LinearGradient
+                colors={['#0284C7', '#0EA5E9']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.fabButton, { borderColor: colors.tabBar }]}
+              >
+                <Ionicons name="add" size={28} color="#FFFFFF" />
+              </LinearGradient>
             </TouchableOpacity>
           ),
         }}
@@ -86,7 +90,7 @@ export default function TabsLayout() {
         options={{
           title: 'Analisis',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'analytics' : 'analytics-outline'} size={22} color={color as string} />
+            <Ionicons name={focused ? 'pie-chart' : 'pie-chart-outline'} size={22} color={color as string} />
           ),
         }}
       />
@@ -95,7 +99,7 @@ export default function TabsLayout() {
         options={{
           title: 'Profil',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'person-circle' : 'person-circle-outline'} size={22} color={color as string} />
+            <Ionicons name={focused ? 'person-circle' : 'person-circle-outline'} size={23} color={color as string} />
           ),
         }}
       />
@@ -107,20 +111,20 @@ const styles = StyleSheet.create({
   fabWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    top: -22,
-    width: 70,
+    top: -20,
+    width: 68,
   },
   fabButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: Colors.primary,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 3,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
     shadowRadius: 10,
-    elevation: 10,
+    elevation: 6,
   },
 });

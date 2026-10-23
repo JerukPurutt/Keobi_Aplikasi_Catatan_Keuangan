@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors, BorderRadius } from '../src/constants/Colors';
 import { useSettingsStore } from '../src/store/useSettingsStore';
 import { hashPassword } from '../src/utils/helpers';
 import { getDatabase, seedDefaultDataForUser } from '../src/db/database';
@@ -122,13 +123,13 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A1628" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
-      {/* Top gradient accent */}
+      {/* Top subtle ocean gradient accent */}
       <LinearGradient
-        colors={['#1A6FE8', '#0A1628']}
+        colors={['#E0F2FE', '#F8FAFC']}
         style={styles.topAccent}
-        start={{ x: 0.2, y: 0 }}
+        start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
 
@@ -175,13 +176,13 @@ export default function RegisterScreen() {
                   <Ionicons
                     name="person-outline"
                     size={18}
-                    color={emailFocused ? '#1A6FE8' : 'rgba(255,255,255,0.35)'}
+                    color={emailFocused ? Colors.primary : '#94A3B8'}
                     style={styles.inputIcon}
                   />
                   <TextInput
                     style={styles.textInput}
                     placeholder="Masukkan email atau username"
-                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    placeholderTextColor="#94A3B8"
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
@@ -205,13 +206,13 @@ export default function RegisterScreen() {
                   <Ionicons
                     name="lock-closed-outline"
                     size={18}
-                    color={passwordFocused ? '#1A6FE8' : 'rgba(255,255,255,0.35)'}
+                    color={passwordFocused ? Colors.primary : '#94A3B8'}
                     style={styles.inputIcon}
                   />
                   <TextInput
                     style={styles.textInput}
                     placeholder="Minimal 8 karakter"
-                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    placeholderTextColor="#94A3B8"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -235,7 +236,7 @@ export default function RegisterScreen() {
                     <Ionicons
                       name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                       size={19}
-                      color="rgba(255,255,255,0.4)"
+                      color="#94A3B8"
                     />
                   </TouchableOpacity>
                 </View>
@@ -248,13 +249,13 @@ export default function RegisterScreen() {
                   <Ionicons
                     name="shield-checkmark-outline"
                     size={18}
-                    color={confirmFocused ? '#1A6FE8' : 'rgba(255,255,255,0.35)'}
+                    color={confirmFocused ? Colors.primary : '#94A3B8'}
                     style={styles.inputIcon}
                   />
                   <TextInput
                     style={styles.textInput}
                     placeholder="Ulangi kata sandi"
-                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    placeholderTextColor="#94A3B8"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showConfirmPassword}
@@ -279,7 +280,7 @@ export default function RegisterScreen() {
                     <Ionicons
                       name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
                       size={19}
-                      color="rgba(255,255,255,0.4)"
+                      color="#94A3B8"
                     />
                   </TouchableOpacity>
                 </View>
@@ -294,10 +295,10 @@ export default function RegisterScreen() {
                       {
                         backgroundColor:
                           password.length < 4
-                            ? '#EF4444'
+                            ? Colors.expense
                             : password.length < 8
-                            ? '#F5C842'
-                            : '#22C55E',
+                            ? '#F59E0B'
+                            : Colors.income,
                         flex: Math.min(password.length / 12, 1),
                       },
                     ]}
@@ -314,13 +315,13 @@ export default function RegisterScreen() {
 
               {/* Register Button */}
               <TouchableOpacity
-                activeOpacity={0.85}
+                activeOpacity={0.88}
                 onPress={handleRegister}
                 disabled={loading}
                 style={[styles.primaryBtnWrapper, { marginTop: 8 }]}
               >
                 <LinearGradient
-                  colors={['#1A6FE8', '#0D4FA8']}
+                  colors={['#0284C7', '#0EA5E9']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.primaryBtn}
@@ -362,7 +363,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0A1628',
+    backgroundColor: '#F8FAFC',
   },
   flex: {
     flex: 1,
@@ -372,13 +373,12 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 220,
-    opacity: 0.5,
+    height: 240,
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingBottom: 24,
   },
   inner: {
     flex: 1,
@@ -387,61 +387,63 @@ const styles = StyleSheet.create({
   // Header
   header: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   logoContainer: {
     marginBottom: 10,
-    borderRadius: 28,
+    borderRadius: 22,
     overflow: 'hidden',
-    shadowColor: '#1A6FE8',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
     backgroundColor: '#fff',
   },
   logoImage: {
-    width: 72,
-    height: 72,
-    borderRadius: 28,
+    width: 68,
+    height: 68,
+    borderRadius: 22,
   },
   appName: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800',
-    color: '#fff',
+    color: '#0F172A',
     letterSpacing: -0.5,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   tagline: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.45)',
+    color: '#64748B',
+    letterSpacing: -0.1,
   },
 
   // Card
   card: {
-    backgroundColor: '#111827',
-    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.xl,
     padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
     marginBottom: 20,
   },
   cardTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#fff',
+    color: '#0F172A',
     marginBottom: 4,
     textAlign: 'center',
+    letterSpacing: -0.4,
   },
   cardSubtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.45)',
-    marginBottom: 24,
+    color: '#64748B',
+    marginBottom: 20,
     textAlign: 'center',
   },
 
@@ -452,32 +454,32 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.5)',
-    letterSpacing: 0.5,
+    color: '#475569',
+    letterSpacing: 0.3,
     textTransform: 'uppercase',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.08)',
-    height: 52,
+    backgroundColor: '#F8FAFC',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    height: 48,
     paddingHorizontal: 14,
   },
   inputRowFocused: {
-    borderColor: '#1A6FE8',
-    backgroundColor: 'rgba(26,111,232,0.06)',
+    borderColor: Colors.primary,
+    backgroundColor: '#F0F9FF',
   },
   inputIcon: {
     marginRight: 10,
   },
   textInput: {
     flex: 1,
-    color: '#fff',
-    fontSize: 15,
+    color: '#0F172A',
+    fontSize: 14,
     paddingVertical: 0,
     height: '100%',
   },
@@ -491,7 +493,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 12,
-    marginTop: -6,
+    marginTop: -4,
   },
   strengthBar: {
     height: 3,
@@ -500,22 +502,24 @@ const styles = StyleSheet.create({
   },
   strengthText: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
+    color: '#64748B',
+    fontWeight: '500',
   },
 
   // Primary Button
   primaryBtnWrapper: {
-    borderRadius: 14,
+    borderRadius: BorderRadius.lg,
     overflow: 'hidden',
+    marginTop: 6,
     marginBottom: 16,
-    shadowColor: '#1A6FE8',
+    shadowColor: '#0284C7',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    elevation: 4,
   },
   primaryBtn: {
-    height: 52,
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -523,14 +527,15 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
+    letterSpacing: -0.2,
   },
 
   // Terms
   termsText: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.25)',
+    color: '#94A3B8',
     textAlign: 'center',
     lineHeight: 16,
   },
@@ -542,11 +547,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: '#64748B',
     fontSize: 14,
   },
   footerLink: {
-    color: '#1A6FE8',
+    color: Colors.primary,
     fontSize: 14,
     fontWeight: '700',
   },

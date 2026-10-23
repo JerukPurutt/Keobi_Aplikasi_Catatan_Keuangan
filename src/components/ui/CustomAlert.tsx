@@ -130,7 +130,7 @@ export default function CustomAlert() {
                     }
                   ]}
                   onPress={() => handleButtonPress(btn)}
-                  activeOpacity={0.8}
+                  activeOpacity={0.82}
                 >
                   <Text style={[styles.buttonText, { color: btnTextCol }]}>
                     {btn.text || 'OK'}
@@ -148,56 +148,58 @@ export default function CustomAlert() {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(10, 22, 40, 0.65)',
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    padding: 24,
   },
   alertCard: {
     width: '100%',
-    maxWidth: 320,
+    maxWidth: 340,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     padding: 24,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 8,
   },
   title: {
     fontSize: FontSize.lg,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 8,
+    letterSpacing: -0.3,
   },
   message: {
-    fontSize: 14,
+    fontSize: FontSize.sm,
     lineHeight: 20,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 22,
   },
   buttonsContainer: {
     width: '100%',
   },
   buttonsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   buttonsColumn: {
     flexDirection: 'column',
-    gap: 10,
+    gap: 8,
   },
   button: {
-    height: 48,
-    borderRadius: BorderRadius.md,
+    height: 44,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
   buttonText: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
 });

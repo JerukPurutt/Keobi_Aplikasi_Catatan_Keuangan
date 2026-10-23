@@ -13,7 +13,7 @@ import { useWalletStore } from '../../src/store/useWalletStore';
 import { useCategoryStore } from '../../src/store/useCategoryStore';
 import { useTransactionStore } from '../../src/store/useTransactionStore';
 import { useTheme } from '../../src/hooks/useTheme';
-import { Colors, BorderRadius, FontSize } from '../../src/constants/Colors';
+import { Colors, BorderRadius, FontSize, Shadow } from '../../src/constants/Colors';
 import { hashPin, verifyPin, hexToRgba } from '../../src/utils/helpers';
 import * as Haptics from 'expo-haptics';
 import { exportToCSV, exportToHTML, backupDatabase, restoreDatabase } from '../../src/utils/export';
@@ -443,7 +443,7 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Profile Card */}
         <LinearGradient
-          colors={['#1A6FE8', '#4F46E5', '#6366F1']}
+          colors={['#0284C7', '#0EA5E9']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.profileCard}
@@ -693,10 +693,11 @@ const styles = StyleSheet.create({
   },
   modeBtnText: { fontSize: FontSize.md },
   profileCard: {
-    marginHorizontal: 20, borderRadius: BorderRadius.lg, padding: 24,
-    alignItems: 'center', gap: 8, marginBottom: 24,
+    marginHorizontal: 20, borderRadius: BorderRadius.xl, padding: 24,
+    alignItems: 'center', gap: 8, marginBottom: 20,
     overflow: 'hidden',
     position: 'relative',
+    ...Shadow.ocean,
   },
   saveProfileBtn: {
     position: 'absolute',
@@ -774,10 +775,17 @@ const styles = StyleSheet.create({
   profileName: { color: '#fff', fontSize: FontSize.xl, fontWeight: '700', textAlign: 'center' },
   profileSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.sm, textAlign: 'center', marginTop: 2 },
   sectionHeader: {
-    fontSize: 11, fontWeight: '700', letterSpacing: 1,
+    fontSize: 11, fontWeight: '700', letterSpacing: 0.8,
     paddingHorizontal: 20, marginBottom: 8, marginTop: 8,
   },
-  settingsCard: { marginHorizontal: 20, borderRadius: BorderRadius.lg, overflow: 'hidden', marginBottom: 8 },
+  settingsCard: {
+    marginHorizontal: 20,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: 16,
+    ...Shadow.sm,
+  },
   settingsRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingHorizontal: 16, paddingVertical: 14,

@@ -25,7 +25,7 @@ const GOAL_ICONS = [
 ];
 
 const GOAL_COLORS = [
-  '#1A6FE8', '#22C55E', '#F59E0B', '#EF4444', '#8B5CF6',
+  '#0284C7', '#22C55E', '#F59E0B', '#EF4444', '#8B5CF6',
   '#EC4899', '#F97316', '#14B8A6', '#6366F1', '#A855F7',
 ];
 
@@ -79,7 +79,7 @@ function GoalCard({
   return (
     <Animated.View style={{ opacity: opacityAnim, transform: [{ scale: scaleAnim }] }}>
       <TouchableOpacity
-        style={[styles.goalCard, { backgroundColor: colors.surface }]}
+        style={[styles.goalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
         onPress={onPress}
         activeOpacity={0.85}
       >
@@ -255,7 +255,7 @@ export default function GoalsScreen() {
 
       {/* Header */}
       <LinearGradient
-        colors={['#1A6FE8', '#4F46E5']}
+        colors={['#0284C7', '#0EA5E9']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={styles.header}
       >
@@ -585,9 +585,10 @@ const styles = StyleSheet.create({
   summaryDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 8 },
   // Goal Card
   goalCard: {
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     padding: 16,
-    ...Shadow.md,
+    borderWidth: 1,
+    ...Shadow.sm,
   },
   goalCardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
   goalIconBg: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },

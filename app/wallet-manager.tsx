@@ -14,7 +14,7 @@ import { router } from 'expo-router';
 import { useTranslation } from '../src/hooks/useTranslation';
 
 const WALLET_ICONS = ['wallet', 'card', 'cash', 'business', 'briefcase', 'storefront', 'phone-portrait', 'logo-bitcoin'];
-const WALLET_COLORS = ['#1A6FE8', '#22C55E', '#EF4444', '#F5C842', '#8B5CF6', '#EC4899', '#F97316', '#14B8A6'];
+const WALLET_COLORS = ['#0284C7', '#22C55E', '#EF4444', '#F5C842', '#8B5CF6', '#EC4899', '#F97316', '#14B8A6'];
 
 // ── Wallet Form Modal ─────────────────────────────────────────────────────────
 function WalletModal({
@@ -145,7 +145,7 @@ export default function WalletManagerScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
-        <View style={[styles.settingsCard, { backgroundColor: colors.surface, marginTop: 16 }]}>
+        <View style={[styles.settingsCard, { backgroundColor: colors.surface, borderColor: colors.border }, Shadow.sm]}>
           {wallets.map((wallet, idx) => (
             <View key={wallet.id} style={[styles.walletRow, { borderBottomColor: colors.border }, idx === wallets.length - 1 && { borderBottomWidth: 0 }]}>
               <View style={[styles.walletRowIcon, { backgroundColor: hexToRgba(wallet.color, 0.15) }]}>
@@ -168,7 +168,7 @@ export default function WalletManagerScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.addItemBtn, { borderColor: Colors.primary, marginTop: 24 }]}
+          style={[styles.addItemBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
           onPress={() => { setEditingWallet(undefined); setShowWalletModal(true); }}
         >
           <Ionicons name="add" size={18} color={Colors.primary} />
@@ -201,27 +201,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: { fontSize: FontSize.xxl, fontWeight: '800', flex: 1 },
-  settingsCard: { marginHorizontal: 20, borderRadius: BorderRadius.lg, overflow: 'hidden', marginBottom: 8 },
+  settingsCard: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+    marginBottom: 8,
+    borderWidth: 1,
+  },
   walletRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  walletRowIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  walletRowIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   walletRowName: { fontSize: FontSize.sm, fontWeight: '600' },
-  walletRowBalance: { fontSize: 12, marginTop: 2 },
+  walletRowBalance: { fontSize: 13, marginTop: 2, fontWeight: '700' },
   addItemBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
     marginHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
     borderStyle: 'dashed',
   },
   addItemText: { fontSize: FontSize.sm, fontWeight: '700' },

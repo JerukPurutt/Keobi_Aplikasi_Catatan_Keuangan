@@ -89,31 +89,40 @@ function BalanceCard({ totalBalance, income, expense }: {
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.05, duration: 3000, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.95, duration: 3000, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1.04, duration: 3500, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.96, duration: 3500, useNativeDriver: true }),
       ])
     ).start();
   }, []);
 
   return (
     <LinearGradient
-      colors={['#1A6FE8', '#4F46E5', '#7C3AED']}
+      colors={['#0284C7', '#0EA5E9']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.balanceCard}
     >
-      {/* Decorative circles */}
+      {/* Decorative ocean glow circles */}
       <Animated.View style={[styles.balanceCircle1, { transform: [{ scale: pulse }] }]}>
-        <LinearGradient colors={['rgba(255, 255, 255, 0.14)', 'rgba(255, 255, 255, 0.01)']} style={{ flex: 1 }} />
+        <LinearGradient colors={['rgba(255, 255, 255, 0.18)', 'rgba(255, 255, 255, 0.02)']} style={{ flex: 1 }} />
       </Animated.View>
       <Animated.View style={[styles.balanceCircle2, { transform: [{ scale: pulse }] }]}>
-        <LinearGradient colors={['rgba(245, 200, 66, 0.16)', 'rgba(245, 200, 66, 0.02)']} style={{ flex: 1 }} />
+        <LinearGradient colors={['rgba(224, 242, 254, 0.25)', 'rgba(224, 242, 254, 0.02)']} style={{ flex: 1 }} />
       </Animated.View>
 
       <View style={styles.balanceHeader}>
-        <Text style={styles.balanceLabelText}>{t.totalBalance}</Text>
-        <TouchableOpacity onPress={() => setShowBalance(v => !v)} activeOpacity={0.7}>
-          <Ionicons name={showBalance ? 'eye' : 'eye-off'} size={20} color="rgba(255,255,255,0.75)" />
+        <View style={styles.balanceHeaderLeft}>
+          <Text style={styles.balanceLabelText}>{t.totalBalance}</Text>
+          <View style={styles.balanceBadge}>
+            <Text style={styles.balanceBadgeText}>Keuangan Aktif</Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          onPress={() => setShowBalance(v => !v)}
+          activeOpacity={0.7}
+          style={styles.balanceEyeBtn}
+        >
+          <Ionicons name={showBalance ? 'eye-outline' : 'eye-off-outline'} size={18} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -123,10 +132,11 @@ function BalanceCard({ totalBalance, income, expense }: {
 
       <View style={styles.balanceDivider} />
 
+      {/* Clean Pill Stats for Income & Expense */}
       <View style={styles.balanceStats}>
-        <View style={styles.balanceStat}>
-          <View style={styles.statIconContainer}>
-            <Ionicons name="arrow-down-circle" size={18} color={Colors.income} />
+        <View style={styles.balancePill}>
+          <View style={[styles.statIconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.22)' }]}>
+            <Ionicons name="arrow-down" size={14} color="#A7F3D0" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.statLabel}>{t.income}</Text>
@@ -135,10 +145,10 @@ function BalanceCard({ totalBalance, income, expense }: {
             </Text>
           </View>
         </View>
-        <View style={styles.balanceStatDivider} />
-        <View style={styles.balanceStat}>
-          <View style={styles.statIconContainer}>
-            <Ionicons name="arrow-up-circle" size={18} color={Colors.expense} />
+
+        <View style={styles.balancePill}>
+          <View style={[styles.statIconContainer, { backgroundColor: 'rgba(244, 63, 94, 0.22)' }]}>
+            <Ionicons name="arrow-up" size={14} color="#FECDD3" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.statLabel}>{t.expense}</Text>
@@ -160,12 +170,12 @@ function WalletItem({ wallet, onPress }: { wallet: Wallet; onPress: () => void }
       style={[styles.walletItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
       onPress={onPress}
     >
-      <View style={[styles.walletIcon, { backgroundColor: hexToRgba(wallet.color, 0.15) }]}>
-        <Ionicons name={(wallet.icon === 'bank' ? 'business' : wallet.icon) as any} size={22} color={wallet.color} />
+      <View style={[styles.walletIcon, { backgroundColor: hexToRgba(wallet.color, 0.12) }]}>
+        <Ionicons name={(wallet.icon === 'bank' ? 'business' : wallet.icon) as any} size={20} color={wallet.color} />
       </View>
       <View style={styles.walletInfo}>
-        <Text style={[styles.walletName, { color: colors.text }]} numberOfLines={1}>{wallet.name}</Text>
-        <Text style={[styles.walletBalance, { color: wallet.color }]}>{formatCurrency(wallet.balance)}</Text>
+        <Text style={[styles.walletName, { color: colors.textSecondary }]} numberOfLines={1}>{wallet.name}</Text>
+        <Text style={[styles.walletBalance, { color: colors.text }]}>{formatCurrency(wallet.balance)}</Text>
       </View>
     </ScalePressable>
   );
@@ -185,8 +195,8 @@ function TransactionItem({ transaction, onPress }: {
       style={[styles.txnItem, { backgroundColor: colors.surface }]}
       onPress={onPress}
     >
-      <View style={[styles.txnIcon, { backgroundColor: hexToRgba(catColor, 0.15) }]}>
-        <Ionicons name={(transaction.category_icon as any) || 'receipt'} size={20} color={catColor} />
+      <View style={[styles.txnIcon, { backgroundColor: hexToRgba(catColor, 0.12) }]}>
+        <Ionicons name={(transaction.category_icon as any) || 'receipt-outline'} size={19} color={catColor} />
       </View>
       <View style={styles.txnContent}>
         <Text style={[styles.txnCategory, { color: colors.text }]}>
@@ -867,13 +877,13 @@ export default function Dashboard() {
             onPress={() => router.push('/goals' as any)}
           >
             <LinearGradient
-              colors={['#F59E0B', '#D97706']}
+              colors={['#0284C7', '#0EA5E9']}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={styles.goalsBanner}
             >
               <View style={styles.goalsBannerLeft}>
                 <View style={styles.goalsBannerIconBg}>
-                  <Ionicons name="trophy" size={22} color="#fff" />
+                  <Ionicons name="trophy" size={20} color="#0284C7" />
                 </View>
                 <View>
                   <Text style={styles.goalsBannerTitle}>{t.savingGoalTitle}</Text>
@@ -885,7 +895,7 @@ export default function Dashboard() {
                   </Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" />
+              <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.9)" />
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
@@ -984,20 +994,20 @@ const styles = StyleSheet.create({
   // Balance Card
   balanceCard: {
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    padding: 24,
+    borderRadius: BorderRadius.xl,
+    padding: 22,
     overflow: 'hidden',
-    ...Shadow.lg,
+    ...Shadow.ocean,
   },
   balanceCircle1: {
-    position: 'absolute', top: -40, right: -40,
-    width: 160, height: 160, borderRadius: 80,
+    position: 'absolute', top: -35, right: -35,
+    width: 150, height: 150, borderRadius: 75,
     backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   balanceCircle2: {
-    position: 'absolute', bottom: -60, left: 20,
-    width: 200, height: 200, borderRadius: 100,
+    position: 'absolute', bottom: -50, left: 10,
+    width: 180, height: 180, borderRadius: 90,
     backgroundColor: 'transparent',
     overflow: 'hidden',
   },
@@ -1005,87 +1015,126 @@ const styles = StyleSheet.create({
   balanceHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  balanceLabelText: { color: 'rgba(255,255,255,0.75)', fontSize: FontSize.sm },
+  balanceHeaderLeft: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  balanceBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  balanceBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  balanceEyeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  balanceLabelText: { color: 'rgba(255,255,255,0.85)', fontSize: FontSize.xs, fontWeight: '500' },
   balanceAmount: {
     color: '#fff', fontSize: 32, fontWeight: '800',
-    marginTop: 8, marginBottom: 20, letterSpacing: -1,
+    marginTop: 8, marginBottom: 18, letterSpacing: -1,
   },
   balanceDivider: {
-    height: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginBottom: 16,
+    height: 1, backgroundColor: 'rgba(255,255,255,0.18)', marginBottom: 14,
   },
-  balanceStats: { flexDirection: 'row', alignItems: 'center' },
-  balanceStat: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  balanceStatDivider: { width: 1, height: 36, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 16 },
+  balanceStats: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  balancePill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.md,
+  },
   statIconContainer: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    width: 28, height: 28, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
-  statLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11 },
-  statValue: { color: '#fff', fontSize: FontSize.sm, fontWeight: '700' },
+  statLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '500' },
+  statValue: { color: '#fff', fontSize: FontSize.xs, fontWeight: '700', marginTop: 1 },
   // Section
-  section: { marginTop: 24, paddingHorizontal: 20 },
+  section: { marginTop: 22, paddingHorizontal: 20 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { fontSize: FontSize.lg, fontWeight: '700' },
-  sectionAction: { fontSize: FontSize.sm, fontWeight: '600' },
+  sectionTitle: { fontSize: FontSize.md, fontWeight: '700', letterSpacing: -0.3 },
+  sectionAction: { fontSize: FontSize.xs, fontWeight: '600' },
   // Wallets
   walletScroll: { marginHorizontal: -4 },
   walletItem: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, paddingVertical: 12,
-    borderRadius: BorderRadius.md, marginHorizontal: 4,
+    borderRadius: BorderRadius.lg, marginHorizontal: 4,
     borderWidth: 1, minWidth: 155,
+    ...Shadow.sm,
   },
   walletIcon: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 38, height: 38, borderRadius: 19,
     alignItems: 'center', justifyContent: 'center',
   },
   walletInfo: { flex: 1 },
-  walletName: { fontSize: FontSize.xs, fontWeight: '600' },
+  walletName: { fontSize: FontSize.xs, fontWeight: '500' },
   walletBalance: { fontSize: FontSize.sm, fontWeight: '700', marginTop: 2 },
   addWalletBtn: {
     alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 18, paddingVertical: 12,
+    paddingHorizontal: 16, paddingVertical: 12,
     borderRadius: BorderRadius.lg, borderWidth: 1.5,
-    borderStyle: 'dashed', marginHorizontal: 4, gap: 4, minWidth: 90,
+    borderStyle: 'dashed', marginHorizontal: 4, gap: 4, minWidth: 88,
   },
-  addWalletText: { fontSize: 12, fontWeight: '600' },
+  addWalletText: { fontSize: 11, fontWeight: '600' },
   // Quick Actions
-  quickActions: { flexDirection: 'row', gap: 12 },
+  quickActions: { flexDirection: 'row', gap: 10 },
   quickAction: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center', gap: 8, paddingVertical: 10,
-    borderRadius: BorderRadius.md, borderWidth: 1,
+    justifyContent: 'center', gap: 8, paddingVertical: 12,
+    borderRadius: BorderRadius.lg, borderWidth: 1,
+    ...Shadow.sm,
   },
-  quickActionText: { fontSize: FontSize.sm, fontWeight: '700' },
+  quickActionText: { fontSize: FontSize.xs, fontWeight: '600' },
   quickActionIconCircle: {
-    width: 32, height: 32, borderRadius: 16,
+    width: 28, height: 28, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
   // Transactions
-  txnList: { borderRadius: BorderRadius.lg, overflow: 'hidden' },
+  txnList: {
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...Shadow.sm,
+  },
   txnItem: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14, gap: 12,
+    paddingHorizontal: 16, paddingVertical: 13, gap: 12,
   },
   txnDivider: { height: StyleSheet.hairlineWidth, marginHorizontal: 16 },
   txnIcon: {
-    width: 42, height: 42, borderRadius: 21,
+    width: 40, height: 40, borderRadius: 20,
     alignItems: 'center', justifyContent: 'center',
   },
   txnContent: { flex: 1 },
-  txnCategory: { fontSize: FontSize.md, fontWeight: '600' },
-  txnNote: { fontSize: FontSize.sm, marginTop: 2 },
+  txnCategory: { fontSize: FontSize.sm, fontWeight: '600', letterSpacing: -0.2 },
+  txnNote: { fontSize: FontSize.xs, marginTop: 2 },
   txnRight: { alignItems: 'flex-end' },
-  txnAmount: { fontSize: FontSize.md, fontWeight: '700' },
+  txnAmount: { fontSize: FontSize.sm, fontWeight: '700' },
   txnDate: { fontSize: 11, marginTop: 2 },
   // Empty state
   emptyState: {
     alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 48, borderRadius: BorderRadius.lg, gap: 8,
+    paddingVertical: 40, borderRadius: BorderRadius.xl, gap: 8,
+    borderWidth: 1, borderColor: '#E2E8F0',
+    ...Shadow.sm,
   },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: '600' },
-  emptySubtitle: { fontSize: FontSize.sm, textAlign: 'center', paddingHorizontal: 24 },
+  emptyTitle: { fontSize: FontSize.md, fontWeight: '600' },
+  emptySubtitle: { fontSize: FontSize.xs, textAlign: 'center', paddingHorizontal: 24 },
   // Modal Edit / Detail Styles
   modalOverlay: {
     flex: 1,
@@ -1143,8 +1192,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   modalInput: {
-    borderWidth: 1.5,
-    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderRadius: BorderRadius.lg,
     padding: 12,
     fontSize: FontSize.md,
     marginBottom: 12,
@@ -1160,43 +1209,44 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
     marginRight: 8,
     marginVertical: 4,
   },
   modalListText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
   },
   modalDateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     padding: 12,
-    borderWidth: 1.5,
-    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderRadius: BorderRadius.lg,
     marginBottom: 12,
   },
   modalActionButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     marginTop: 16,
     marginBottom: 24,
   },
   modalCancelBtn: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: BorderRadius.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalSaveBtn: {
     flex: 2,
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: BorderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Shadow.sm,
   },
   // Goals Banner
   goalsBanner: {

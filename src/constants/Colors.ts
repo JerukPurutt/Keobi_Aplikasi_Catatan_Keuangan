@@ -1,68 +1,76 @@
-// Color palette and design tokens for Keobi
+// Color palette and design tokens for Keobi (Fresh Ocean Blue & Crisp White Shadcn Style)
 export const Colors = {
-  // Primary blues
-  primary: '#1A6FE8',
-  primaryDark: '#0D4FA8',
-  primaryLight: '#4E94F0',
-  primaryUltraLight: '#E8F0FE',
+  // Primary Ocean Blues
+  primary: '#0284C7',          // Sky-600 / Fresh Ocean Blue
+  primaryDark: '#0369A1',      // Sky-700 / Deep Ocean Blue
+  primaryLight: '#0EA5E9',     // Sky-500 / Bright Sea Blue
+  primaryUltraLight: '#F0F9FF',// Sky-50 / Ocean Mist White
+  primaryTint: '#E0F2FE',      // Sky-100 / Soft Aqua Ice
 
-  // Accent yellow
-  accent: '#F5C842',
-  accentDark: '#D4A017',
-  accentLight: '#FDE68A',
+  // Accent Aqua & Cyan
+  accent: '#06B6D4',           // Cyan-500 / Fresh Aqua
+  accentDark: '#0891B2',       // Cyan-600
+  accentLight: '#BAE6FD',      // Sky-200
+  accentMuted: '#E0F2FE',
 
   // Semantic
-  income: '#22C55E',
-  incomeLight: '#DCFCE7',
-  expense: '#EF4444',
-  expenseLight: '#FEE2E2',
+  income: '#10B981',           // Emerald-500 / Mint Green
+  incomeDark: '#059669',
+  incomeLight: '#ECFDF5',
+  expense: '#F43F5E',          // Rose-500 / Coral Red
+  expenseDark: '#E11D48',
+  expenseLight: '#FFF1F2',
 
-  // Light theme
+  // Light theme (Crisp Pure White & Fresh Ocean Blue)
   light: {
-    background: '#F0F4FF',
-    surface: '#FFFFFF',
-    surfaceSecondary: '#F8FAFF',
-    border: '#E2EAFF',
-    text: '#0A1628',
-    textSecondary: '#4A5568',
-    textMuted: '#94A3B8',
+    background: '#F8FAFC',      // Airy, fresh light slate/white
+    surface: '#FFFFFF',         // Pure White
+    surfaceSecondary: '#F0F9FF',// Soft Ocean Mist
+    border: '#E2E8F0',          // Crisp Shadcn border
+    borderSubtle: '#F1F5F9',
+    text: '#0F172A',            // Slate-900 / High contrast readable text
+    textSecondary: '#475569',   // Slate-600
+    textMuted: '#94A3B8',       // Slate-400
     card: '#FFFFFF',
     tabBar: '#FFFFFF',
-    input: '#F0F4FF',
-    inputBorder: '#CBD5E1',
-    shadow: 'rgba(26, 111, 232, 0.1)',
-    overlay: 'rgba(10, 22, 40, 0.5)',
+    input: '#FFFFFF',
+    inputBorder: '#E2E8F0',
+    shadow: 'rgba(2, 132, 199, 0.08)',
+    overlay: 'rgba(15, 23, 42, 0.45)',
   },
 
-  // Dark theme
+  // Dark theme (Deep Ocean Midnight)
   dark: {
-    background: '#0A1628',
-    surface: '#111827',
-    surfaceSecondary: '#1A2535',
-    border: '#1E3A5F',
-    text: '#F0F4FF',
+    background: '#070D18',      // Deep Ocean Midnight
+    surface: '#0F1B2D',         // Navy Ocean Surface
+    surfaceSecondary: '#16253D',
+    border: '#1E3252',
+    borderSubtle: '#15243B',
+    text: '#F8FAFC',
     textSecondary: '#94A3B8',
-    textMuted: '#4A5568',
-    card: '#111827',
-    tabBar: '#0D1E35',
-    input: '#1A2535',
-    inputBorder: '#1E3A5F',
+    textMuted: '#64748B',
+    card: '#0F1B2D',
+    tabBar: '#0A1322',
+    input: '#16253D',
+    inputBorder: '#1E3252',
     shadow: 'rgba(0,0,0,0.4)',
     overlay: 'rgba(0,0,0,0.7)',
   },
 
-  // Chart colors
+  // Chart colors (Ocean & vibrant harmonized)
   chartColors: [
-    '#1A6FE8', '#F5C842', '#22C55E', '#EF4444',
-    '#8B5CF6', '#EC4899', '#F97316', '#14B8A6',
-    '#6366F1', '#A855F7', '#3B82F6', '#FBBF24',
+    '#0284C7', '#0EA5E9', '#10B981', '#F43F5E',
+    '#06B6D4', '#8B5CF6', '#EC4899', '#F59E0B',
+    '#3B82F6', '#14B8A6', '#6366F1', '#10B981',
   ],
 
-  // Gradient
-  gradientPrimary: ['#1A6FE8', '#0D4FA8'] as const,
-  gradientAccent: ['#F5C842', '#D4A017'] as const,
-  gradientDark: ['#0A1628', '#111827'] as const,
-  gradientCard: ['#1A2535', '#0D1E35'] as const,
+  // Gradients
+  gradientPrimary: ['#0284C7', '#0EA5E9'] as const,   // Fresh Ocean Sea Blue
+  gradientOceanCard: ['#0284C7', '#0369A1'] as const, // Ocean Blue Gradient
+  gradientAqua: ['#0EA5E9', '#06B6D4'] as const,
+  gradientAccent: ['#0EA5E9', '#0284C7'] as const,
+  gradientDark: ['#070D18', '#0F1B2D'] as const,
+  gradientCard: ['#16253D', '#0F1B2D'] as const,
 };
 
 export const Spacing = {
@@ -75,10 +83,12 @@ export const Spacing = {
 };
 
 export const BorderRadius = {
+  xs: 4,
   sm: 8,
   md: 12,
   lg: 16,
-  xl: 24,
+  xl: 20,
+  xxl: 24,
   full: 9999,
 };
 
@@ -89,8 +99,8 @@ export const FontSize = {
   lg: 17,
   xl: 20,
   xxl: 24,
-  xxxl: 32,
-  display: 40,
+  xxxl: 30,
+  display: 36,
 };
 
 export const FontWeight = {
@@ -103,30 +113,37 @@ export const FontWeight = {
 
 export const Shadow = {
   sm: {
-    shadowColor: '#1A6FE8',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   md: {
-    shadowColor: '#1A6FE8',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 3,
   },
   lg: {
-    shadowColor: '#1A6FE8',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  ocean: {
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
   },
   dark: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 6,
   },

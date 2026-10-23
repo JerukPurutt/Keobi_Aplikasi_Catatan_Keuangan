@@ -13,7 +13,7 @@ import { Category } from '../src/types';
 import { router } from 'expo-router';
 import { useTranslation } from '../src/hooks/useTranslation';
 
-const WALLET_COLORS = ['#1A6FE8', '#22C55E', '#EF4444', '#F5C842', '#8B5CF6', '#EC4899', '#F97316', '#14B8A6'];
+const WALLET_COLORS = ['#0284C7', '#22C55E', '#EF4444', '#F5C842', '#8B5CF6', '#EC4899', '#F97316', '#14B8A6'];
 const CAT_ICONS = ['briefcase', 'restaurant', 'car', 'bag', 'receipt', 'medical', 'game-controller', 'sparkles', 'fast-food', 'school', 'laptop', 'gift', 'home', 'fitness', 'pricetag'];
 
 // ── Category Form Modal ───────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ export default function CategoryManagerScreen() {
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t.manageCategoryTitle}</Text>
       </View>
 
-      <View style={[styles.modeToggleContainer, { backgroundColor: colors.surfaceSecondary, marginTop: 12 }]}>
+      <View style={[styles.modeToggleContainer, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border, borderWidth: 1, marginTop: 12 }]}>
         {(['expense', 'income'] as const).map(tab => {
           const isActive = categoryTab === tab;
           return (
@@ -186,7 +186,7 @@ export default function CategoryManagerScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
-        <View style={[styles.settingsCard, { backgroundColor: colors.surface, marginTop: 16 }]}>
+        <View style={[styles.settingsCard, { backgroundColor: colors.surface, borderColor: colors.border }, Shadow.sm]}>
           {filteredCats.map((cat, idx) => (
             <View key={cat.id} style={[styles.catRow, { borderBottomColor: colors.border }, idx === filteredCats.length - 1 && { borderBottomWidth: 0 }]}>
               <View style={[styles.catRowIcon, { backgroundColor: hexToRgba(cat.color, 0.15) }]}>
@@ -211,7 +211,7 @@ export default function CategoryManagerScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.addItemBtn, { borderColor: Colors.primary, marginTop: 24 }]}
+          style={[styles.addItemBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
           onPress={() => { setEditingCat(undefined); setShowCatModal(true); }}
         >
           <Ionicons name="add" size={18} color={Colors.primary} />
@@ -246,33 +246,49 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: FontSize.xxl, fontWeight: '800', flex: 1 },
   modeToggleContainer: {
-    flexDirection: 'row', marginHorizontal: 20, borderRadius: BorderRadius.md, padding: 4,
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    borderRadius: BorderRadius.lg,
+    padding: 3,
   },
   modeBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, paddingVertical: 12, borderRadius: BorderRadius.md,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.md,
   },
-  modeBtnText: { fontSize: FontSize.md },
-  settingsCard: { marginHorizontal: 20, borderRadius: BorderRadius.lg, overflow: 'hidden', marginBottom: 8 },
+  modeBtnText: { fontSize: FontSize.sm },
+  settingsCard: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+    marginBottom: 8,
+    borderWidth: 1,
+  },
   catRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 13,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  catRowIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  catRowIcon: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   catRowName: { flex: 1, fontSize: FontSize.sm, fontWeight: '600' },
   addItemBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
     marginHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
     borderStyle: 'dashed',
   },
   addItemText: { fontSize: FontSize.sm, fontWeight: '700' },

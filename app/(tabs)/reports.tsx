@@ -22,11 +22,10 @@ function SummaryCard({ label, amount, icon, color }: {
   label: string; amount: number; icon: any; color: string;
 }) {
   const { colors } = useTheme();
-  const { t } = useTranslation();
   return (
-    <View style={[styles.summaryCard, { backgroundColor: colors.surface }]}>
-      <View style={[styles.summaryIcon, { backgroundColor: hexToRgba(color, 0.15) }]}>
-        <Ionicons name={icon} size={20} color={color} />
+    <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.summaryIcon, { backgroundColor: hexToRgba(color, 0.12) }]}>
+        <Ionicons name={icon} size={18} color={color} />
       </View>
       <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{label}</Text>
       <Text style={[styles.summaryAmount, { color }]}>{formatCurrency(amount, true)}</Text>
@@ -114,7 +113,6 @@ export default function ReportsScreen() {
   useEffect(() => { loadData(); }, [loadData]);
 
   const chartWidth = SCREEN_WIDTH - 40;
-  const textColor = colors.text;
   const gridColor = colors.border;
 
   return (
@@ -123,54 +121,70 @@ export default function ReportsScreen() {
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t.reportsTitle}</Text>
       </View>
 
-      {/* Period Toggle */}
-      <View style={[styles.periodToggle, { backgroundColor: colors.surfaceSecondary }]}>
-        {(['daily', 'weekly', 'monthly'] as Period[]).map(p => (
-          <TouchableOpacity
-            key={p}
-            style={[styles.periodBtn, period === p && { backgroundColor: Colors.primary }]}
-            onPress={() => { setPeriod(p); setOffset(0); }}
-          >
-            <Text style={[styles.periodText, { color: period === p ? '#fff' : colors.textSecondary }]}>
-              {p === 'daily' ? t.daily : p === 'weekly' ? t.weekly : t.monthly}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      {/* Period Toggle - Shadcn style */}
+      <View style={[styles.periodToggle, { backgroundColor: isDark ? colors.surfaceSecondary : '#F1F5F9' }]}>
+        {(['daily', 'weekly', 'monthly'] as Period[]).map(p => {
+          const isSelected = period === p;
+          return (
+            <TouchableOpacity
+              key={p}
+              style={[
+                styles.periodBtn,
+                isSelected && [
+                  styles.periodBtnActive,
+                  { backgroundColor: colors.surface, ...Shadow.sm },
+                ],
+              ]}
+              onPress={() => { setPeriod(p); setOffset(0); }}
+              activeOpacity={0.8}
+            >
+              <Text style={[
+                styles.periodText,
+                { color: isSelected ? Colors.primary : colors.textSecondary },
+                isSelected && { fontWeight: '700' },
+              ]}>
+                {p === 'daily' ? t.daily : p === 'weekly' ? t.weekly : t.monthly}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Date Navigator */}
         <View style={styles.dateNav}>
           <TouchableOpacity
-            style={[styles.navBtn, { backgroundColor: colors.surface }]}
+            style={[styles.navBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => setOffset(o => o + 1)}
+            activeOpacity={0.7}
           >
-            <Ionicons name="chevron-back" size={20} color={colors.text} />
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.dateLabel, { color: colors.text }]}>{dateRange.label}</Text>
           <TouchableOpacity
-            style={[styles.navBtn, { backgroundColor: colors.surface, opacity: offset === 0 ? 0.4 : 1 }]}
+            style={[styles.navBtn, { backgroundColor: colors.surface, borderColor: colors.border, opacity: offset === 0 ? 0.35 : 1 }]}
             onPress={() => offset > 0 && setOffset(o => o - 1)}
             disabled={offset === 0}
+            activeOpacity={0.7}
           >
-            <Ionicons name="chevron-forward" size={20} color={colors.text} />
+            <Ionicons name="chevron-forward" size={18} color={colors.text} />
           </TouchableOpacity>
         </View>
 
         {/* Summary Cards */}
         <View style={styles.summaryRow}>
-          <SummaryCard label={t.income} amount={summary.income} icon="arrow-down-circle" color={Colors.income} />
-          <SummaryCard label={t.expense} amount={summary.expense} icon="arrow-up-circle" color={Colors.expense} />
+          <SummaryCard label={t.income} amount={summary.income} icon="arrow-down-circle-outline" color={Colors.income} />
+          <SummaryCard label={t.expense} amount={summary.expense} icon="arrow-up-circle-outline" color={Colors.expense} />
           <SummaryCard
             label={t.difference}
             amount={summary.income - summary.expense}
-            icon="analytics"
+            icon="analytics-outline"
             color={summary.income >= summary.expense ? Colors.income : Colors.expense}
           />
         </View>
 
         {/* Chart */}
-        <View style={[styles.chartCard, { backgroundColor: colors.surface }]}>
+        <View style={[styles.chartCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.chartLegend}>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: Colors.income }]} />
@@ -188,8 +202,8 @@ export default function ReportsScreen() {
             </View>
           ) : barData.length === 0 ? (
             <View style={styles.chartEmpty}>
-              <Ionicons name="bar-chart-outline" size={48} color={colors.textMuted} />
-              <Text style={[{ color: colors.textMuted, marginTop: 8 }]}>{t.noData}</Text>
+              <Ionicons name="bar-chart-outline" size={44} color={colors.textMuted} />
+              <Text style={[{ color: colors.textMuted, marginTop: 8, fontSize: FontSize.xs }]}>{t.noData}</Text>
             </View>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -215,7 +229,7 @@ export default function ReportsScreen() {
         </View>
 
         {/* Net Summary */}
-        <View style={[styles.netCard, { backgroundColor: colors.surface }]}>
+        <View style={[styles.netCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.netLabel, { color: colors.textSecondary }]}>
             {t.financialCondition} {dateRange.label}
           </Text>
@@ -239,50 +253,73 @@ export default function ReportsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingBottom: 12 },
-  headerTitle: { fontSize: FontSize.xxl, fontWeight: '800' },
+  header: { paddingHorizontal: 20, paddingBottom: 8 },
+  headerTitle: { fontSize: FontSize.xxl, fontWeight: '800', letterSpacing: -0.5 },
   periodToggle: {
-    flexDirection: 'row', marginHorizontal: 20, borderRadius: BorderRadius.lg,
-    padding: 4, marginBottom: 16,
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginTop: 8,
+    borderRadius: BorderRadius.lg,
+    padding: 3,
+    marginBottom: 16,
   },
   periodBtn: {
-    flex: 1, paddingVertical: 10, alignItems: 'center',
+    flex: 1,
+    paddingVertical: 9,
+    alignItems: 'center',
     borderRadius: BorderRadius.md,
   },
-  periodText: { fontSize: FontSize.sm, fontWeight: '600' },
+  periodBtnActive: {},
+  periodText: { fontSize: FontSize.xs, fontWeight: '600' },
   dateNav: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, marginBottom: 16,
   },
   navBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 36, height: 36, borderRadius: 18, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
+    ...Shadow.sm,
   },
-  dateLabel: { fontSize: FontSize.lg, fontWeight: '700' },
+  dateLabel: { fontSize: FontSize.md, fontWeight: '700', letterSpacing: -0.3 },
   summaryRow: { flexDirection: 'row', paddingHorizontal: 20, gap: 10, marginBottom: 16 },
   summaryCard: {
-    flex: 1, borderRadius: BorderRadius.lg, padding: 12, alignItems: 'center', gap: 4,
+    flex: 1,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: 12,
+    alignItems: 'center',
+    gap: 4,
+    ...Shadow.sm,
   },
   summaryIcon: {
-    width: 36, height: 36, borderRadius: 18,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 4,
+    width: 34, height: 34, borderRadius: 17,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 2,
   },
   summaryLabel: { fontSize: 11, fontWeight: '500', textAlign: 'center' },
-  summaryAmount: { fontSize: FontSize.sm, fontWeight: '700', textAlign: 'center' },
+  summaryAmount: { fontSize: FontSize.xs, fontWeight: '700', textAlign: 'center', marginTop: 2 },
   chartCard: {
-    marginHorizontal: 20, borderRadius: BorderRadius.lg,
-    padding: 16, marginBottom: 16,
+    marginHorizontal: 20,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 16,
+    ...Shadow.sm,
   },
   chartLegend: { flexDirection: 'row', gap: 16, marginBottom: 16 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 10, height: 10, borderRadius: 5 },
-  legendText: { fontSize: FontSize.sm },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: FontSize.xs, fontWeight: '500' },
   chartLoading: { height: 200, alignItems: 'center', justifyContent: 'center' },
   chartEmpty: { height: 200, alignItems: 'center', justifyContent: 'center' },
   netCard: {
-    marginHorizontal: 20, borderRadius: BorderRadius.lg, padding: 20, gap: 8,
+    marginHorizontal: 20,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: 20,
+    gap: 6,
+    ...Shadow.sm,
   },
-  netLabel: { fontSize: FontSize.sm },
-  netAmount: { fontSize: FontSize.xxl, fontWeight: '800' },
-  netSubtitle: { fontSize: FontSize.sm, lineHeight: 20 },
+  netLabel: { fontSize: FontSize.xs, fontWeight: '500' },
+  netAmount: { fontSize: FontSize.xl, fontWeight: '800', letterSpacing: -0.5 },
+  netSubtitle: { fontSize: FontSize.xs, lineHeight: 18 },
 });
