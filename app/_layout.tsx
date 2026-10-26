@@ -1,7 +1,8 @@
 // Root app layout with expo-router, auth guard, and app initialization
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Stack, router, ThemeProvider, DefaultTheme, DarkTheme } from 'expo-router';
-import { View, Text, ActivityIndicator, Alert, StatusBar, Image, Animated } from 'react-native';
+import { View, Text, ActivityIndicator, Alert, Image, Animated } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
 import { useSettingsStore } from '../src/store/useSettingsStore';
@@ -24,6 +25,10 @@ import CustomAlert from '../src/components/ui/CustomAlert';
 };
 
 SplashScreen.preventAutoHideAsync();
+SplashScreen.setOptions({
+  duration: 350,
+  fade: true,
+});
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
@@ -100,7 +105,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (isReady && isLoaded && !authChecked) {
       setAuthChecked(true);
-      SplashScreen.hideAsync();
+      SplashScreen.hide();
 
       if (!session_active || !login_email) {
         router.replace('/login' as any);
@@ -125,7 +130,7 @@ export default function RootLayout() {
           justifyContent: 'center',
         }}
       >
-        <StatusBar barStyle="light-content" translucent={true} backgroundColor="transparent" />
+        <StatusBar style="light" />
 
         {/* Background decorative circles */}
         <View style={{
@@ -210,7 +215,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={navigationTheme}>
-      <StatusBar barStyle={dark_mode ? 'light-content' : 'dark-content'} translucent={true} backgroundColor="transparent" />
+      <StatusBar style={dark_mode ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,

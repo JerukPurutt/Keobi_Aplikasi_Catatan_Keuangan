@@ -11,9 +11,9 @@ import {
   Platform,
   ScrollView,
   Animated,
-  StatusBar,
   Image,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -135,7 +135,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <StatusBar style="dark" />
 
       {/* Top subtle ocean gradient accent */}
       <LinearGradient

@@ -140,14 +140,26 @@ export default function TransactionScreen() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const amountInputRef = useRef<any>(null);
 
   const categories = getCategoriesByType(mode);
   const amount = parseInt(amountStr.replace(/\D/g, ''), 10) || 0;
 
   const handleAmountChange = (text: string) => {
-    const cleanNumber = text.replace(/\D/g, '');
+    const cleanNumber = text.replace(/\D/g, '').slice(0, 16);
     setAmountStr(cleanNumber || '0');
   };
+
+  const formattedAmount = amount > 0 ? amount.toLocaleString('id-ID') : '';
+  const getAmountFontSize = () => {
+    const len = formattedAmount.length || 1;
+    if (len >= 16) return 20;
+    if (len >= 13) return 23;
+    if (len >= 10) return 27;
+    if (len >= 7) return 31;
+    return 36;
+  };
+  const amountFontSize = getAmountFontSize();
 
   const handleSubmit = async () => {
     Keyboard.dismiss();
@@ -237,25 +249,54 @@ export default function TransactionScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Amount Section */}
-        <View style={[styles.amountCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => amountInputRef.current?.focus()}
+          style={[
+            styles.amountCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: isDark ? colors.border : '#E2E8F0',
+              borderWidth: isDark ? 1 : 0,
+            },
+          ]}
+        >
           <Text style={[styles.amountHeader, { color: colors.textMuted }]}>{t.txnAmountTitle}</Text>
           <View style={styles.amountInputRow}>
-            <Text style={[styles.amountPrefix, { color: modeColor }]}>Rp</Text>
+            <Text
+              style={[
+                styles.amountPrefix,
+                {
+                  color: modeColor,
+                  fontSize: Math.max(16, Math.round(amountFontSize * 0.65)),
+                },
+              ]}
+            >
+              Rp
+            </Text>
             <TextInput
-              style={[styles.amountInput, { color: colors.text }]}
+              ref={amountInputRef}
+              style={[
+                styles.amountInput,
+                {
+                  color: colors.text,
+                  fontSize: amountFontSize,
+                },
+              ]}
               keyboardType="number-pad"
-              value={amount > 0 ? amount.toLocaleString('id-ID') : ''}
+              value={formattedAmount}
               onChangeText={handleAmountChange}
               placeholder="0"
               placeholderTextColor={colors.textMuted}
               autoFocus={true}
               selectionColor={modeColor}
+              maxLength={19}
             />
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Form Fields Card */}
-        <View style={[styles.formCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.formCard, { backgroundColor: colors.surface, borderColor: isDark ? colors.border : '#E2E8F0', borderWidth: isDark ? 1 : 0 }]}>
           {/* Wallet */}
           <TouchableOpacity
             style={[styles.formRow, { borderBottomColor: colors.borderSubtle || colors.border }]}
@@ -407,9 +448,9 @@ const styles = StyleSheet.create({
   amountCard: {
     marginHorizontal: 20,
     marginBottom: 16,
-    padding: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
     borderRadius: BorderRadius.xl,
-    borderWidth: 1,
     alignItems: 'center',
     ...Shadow.sm,
   },
@@ -418,30 +459,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   amountInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    maxWidth: '100%',
+    paddingHorizontal: 8,
   },
   amountPrefix: {
-    fontSize: FontSize.xl,
     fontWeight: '800',
+    marginRight: 6,
   },
   amountInput: {
-    fontSize: 34,
     fontWeight: '800',
-    letterSpacing: -1,
-    minWidth: 100,
-    textAlign: 'center',
-    padding: 0,
+    letterSpacing: -0.5,
+    textAlign: 'left',
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    margin: 0,
+    flexShrink: 1,
   },
   formCard: {
     marginHorizontal: 20,
     borderRadius: BorderRadius.xl,
-    borderWidth: 1,
     overflow: 'hidden',
     marginBottom: 20,
     ...Shadow.sm,

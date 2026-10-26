@@ -36,7 +36,7 @@ function SettingsRow({
   icon: string; iconColor?: string; label: string; labelColor?: string; value?: string;
   onPress?: () => void; rightEl?: React.ReactNode; subtitle?: string; hideDivider?: boolean;
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const finalIconColor = iconColor || colors.textSecondary;
   const finalLabelColor = labelColor || colors.text;
 
@@ -44,7 +44,7 @@ function SettingsRow({
     <TouchableOpacity
       style={[
         styles.settingsRow,
-        { borderBottomColor: colors.border },
+        { borderBottomColor: isDark ? colors.border : '#F1F5F9' },
         hideDivider && { borderBottomWidth: 0 }
       ]}
       onPress={onPress}
@@ -504,7 +504,7 @@ export default function ProfileScreen() {
 
         {/* Preferences */}
         <SectionHeader title={t.preferences} />
-        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
+        <View style={[styles.settingsCard, { backgroundColor: colors.surface, borderWidth: isDark ? 1 : 0, borderColor: colors.border }]}>
           <SettingsRow
             icon="moon"
             label={t.darkMode}
@@ -540,7 +540,7 @@ export default function ProfileScreen() {
 
         {/* Manage Data Settings */}
         <SectionHeader title={t.manageData} />
-        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
+        <View style={[styles.settingsCard, { backgroundColor: colors.surface, borderWidth: isDark ? 1 : 0, borderColor: colors.border }]}>
           <SettingsRow
             icon="wallet"
             label={t.manageWallet}
@@ -558,7 +558,7 @@ export default function ProfileScreen() {
 
         {/* Backup & Restore */}
         <SectionHeader title={t.exportSection} />
-        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
+        <View style={[styles.settingsCard, { backgroundColor: colors.surface, borderWidth: isDark ? 1 : 0, borderColor: colors.border }]}>
           <SettingsRow
             icon="document-text"
             label={t.exportCSV}
@@ -588,13 +588,13 @@ export default function ProfileScreen() {
 
         {/* About */}
         <SectionHeader title={t.about} />
-        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
+        <View style={[styles.settingsCard, { backgroundColor: colors.surface, borderWidth: isDark ? 1 : 0, borderColor: colors.border }]}>
           <SettingsRow icon="information-circle" label={t.version} value="1.0.0" hideDivider={true} />
         </View>
 
         {/* Danger Zone */}
         <SectionHeader title={t.dangerZone} />
-        <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
+        <View style={[styles.settingsCard, { backgroundColor: colors.surface, borderWidth: isDark ? 1 : 0, borderColor: colors.border }]}>
           <SettingsRow
             icon="log-out"
             label={t.logout}
@@ -781,7 +781,6 @@ const styles = StyleSheet.create({
   settingsCard: {
     marginHorizontal: 20,
     borderRadius: BorderRadius.xl,
-    borderWidth: 1,
     overflow: 'hidden',
     marginBottom: 16,
     ...Shadow.sm,

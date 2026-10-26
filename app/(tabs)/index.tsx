@@ -378,7 +378,7 @@ function TransactionEditModal({
               keyboardType="numeric"
               value={parseInt(amountStr || '0', 10).toLocaleString('id-ID')}
               onChangeText={val => {
-                const clean = val.replace(/\D/g, '');
+                const clean = val.replace(/\D/g, '').slice(0, 16);
                 setAmountStr(clean || '0');
               }}
             />
@@ -593,7 +593,7 @@ function NotificationModal({
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { wallets, totalBalance, loadWallets } = useWalletStore();
@@ -917,7 +917,7 @@ export default function Dashboard() {
           </View>
 
           {recentTransactions.length === 0 ? (
-            <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
+            <View style={[styles.emptyState, { backgroundColor: colors.surface, borderWidth: isDark ? 1 : 0, borderColor: colors.border }]}>
               <Ionicons name="receipt-outline" size={48} color={colors.textMuted} />
               <Text style={[styles.emptyTitle, { color: colors.textSecondary }]}>{t.noTxns}</Text>
               <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
@@ -925,12 +925,12 @@ export default function Dashboard() {
               </Text>
             </View>
           ) : (
-            <View style={[styles.txnList, { backgroundColor: colors.surface }]}>
+            <View style={[styles.txnList, { backgroundColor: colors.surface, borderWidth: isDark ? 1 : 0, borderColor: colors.border }]}>
               {recentTransactions.map((txn, idx) => (
                 <React.Fragment key={txn.id}>
                   <TransactionItem transaction={txn} onPress={() => handleSelectTransaction(txn)} />
                   {idx < recentTransactions.length - 1 && (
-                    <View style={[styles.txnDivider, { backgroundColor: colors.border }]} />
+                    <View style={[styles.txnDivider, { backgroundColor: isDark ? colors.border : '#F1F5F9' }]} />
                   )}
                 </React.Fragment>
               ))}
@@ -1107,7 +1107,6 @@ const styles = StyleSheet.create({
   // Transactions
   txnList: {
     borderRadius: BorderRadius.xl,
-    borderWidth: 1,
     overflow: 'hidden',
     ...Shadow.sm,
   },
@@ -1130,7 +1129,6 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center', justifyContent: 'center',
     paddingVertical: 40, borderRadius: BorderRadius.xl, gap: 8,
-    borderWidth: 1, borderColor: '#E2E8F0',
     ...Shadow.sm,
   },
   emptyTitle: { fontSize: FontSize.md, fontWeight: '600' },
